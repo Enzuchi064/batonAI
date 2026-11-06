@@ -11,7 +11,7 @@ reales de las IAs instaladas: **OpenCode**, **Codex** y **Claude Code**.
 ## Descargar e instalar
 
 1. Entra en **[Releases](https://github.com/Enzuchi064/batonAI/releases/latest)**.
-2. Descarga `batonAI-control-setup-0.2.0.exe`.
+2. Descarga `batonAI-control-setup-0.3.0.exe`.
 3. Ejecútalo. Se instala en `Program Files` y pide administrador una vez para
    permitir el gateway en la red privada.
 4. Abre **batonAI control** desde el menú Inicio.
@@ -31,18 +31,23 @@ botón **Abrir panel**.
 
 ## Control desde otro PC
 
-El gateway del PC donde está el dispositivo puede usarse desde la app instalada
-en otro PC de la misma red.
+El PC del dispositivo y el PC del panel de control se vinculan con **Google
+Authenticator**, sin copiar URL ni token.
 
-1. En el PC del dispositivo: **Ajustes → Conexión → Acceso desde otro PC**.
-2. Copia la **URL** y el **token**.
-3. En el otro PC: **Ajustes → Conexión**, pega la URL y el token, y pulsa
-   **Conectar**.
-4. Ese PC ya ve el mismo gateway, los mismos agentes y el mismo dispositivo.
+1. En el PC del dispositivo, abre el panel y deja visible el QR de
+   emparejamiento.
+2. Escanea el QR con **Google Authenticator**.
+3. En el otro PC, abre **batonAI control → Ajustes → Conexión**.
+4. Pulsa **Buscar dispositivo**. La app descubre el PC del dispositivo en la
+   red local.
+5. Escribe el código de 6 dígitos de Google Authenticator y pulsa **Vincular**.
+
+La app guarda la conexión y ya muestra el mismo gateway, los mismos agentes y
+el mismo dispositivo. No hay que escribir tokens.
 
 El instalador crea la regla de firewall para `batonAI-gateway.exe` en redes
-privadas; la red debe estar configurada como **Privada** en Windows. Las
-peticiones remotas siempre requieren el token; no expongas el puerto a Internet.
+privadas; la red debe estar configurada como **Privada** en Windows. No expongas
+el puerto a Internet.
 
 ## Qué incluye
 
@@ -120,7 +125,7 @@ cd ..
 & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "packaging\batonAI.iss"
 ```
 
-El resultado queda en `release\batonAI-control-setup-0.2.0.exe`.
+El resultado queda en `release\batonAI-control-setup-0.3.0.exe`.
 
 ## Datos y privacidad
 

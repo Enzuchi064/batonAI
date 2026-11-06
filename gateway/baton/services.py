@@ -16,6 +16,7 @@ from .broker import ApprovalBroker
 from .claude_usage import ClaudeLimitsSource
 from .codex_usage import CodexLimitsSource, find_codex_executable
 from .config import Settings
+from .lan_discovery import DiscoveryResponder
 from .limits import LimitsService
 from .opencode_usage import OpenCodeLimitsSource
 from .discovery import OpenCodeDiscovery
@@ -100,6 +101,7 @@ class Services:
     limits_view: str = "remaining"
     limits: LimitsService | None = None
     remote_token: str = ""
+    lan_discovery: DiscoveryResponder | None = None
     started_at: float = field(default_factory=time.monotonic)
 
     # -- construcción -----------------------------------------------------
@@ -249,6 +251,15 @@ class Services:
                     if item.split(":", 1)[0] in known
                 ]
 
+        lan_discovery = (
+            DiscoveryResponder(
+                settings.port,
+                virtual_device.device_id if virtual_device else "",
+            )
+            if settings.host in {"0.0.0.0", "::"}
+            else None
+        )
+
         return cls(
             settings=settings,
             audit=audit,
@@ -268,6 +279,7 @@ class Services:
             limits_view=limits_view,
             limits=limits,
             remote_token=remote_token,
+            lan_discovery=lan_discovery,
         )
 
     async def start(self) -> None:
@@ -276,8 +288,12 @@ class Services:
             await self.discovery.start()
         if self.local_discovery is not None:
             await self.local_discovery.start()
+        if self.lan_discovery is not None:
+            self.lan_discovery.start()
 
     async def stop(self) -> None:
+        if self.lan_discovery is not None:
+            self.lan_discovery.stop()
         if self.local_discovery is not None:
             await self.local_discovery.stop()
         if self.discovery is not None:

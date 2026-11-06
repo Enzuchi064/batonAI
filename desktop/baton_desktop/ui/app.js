@@ -144,6 +144,8 @@ const state = {
   virtualPoll: null,
   restDirty: false,
   connection: { url: "", token: "", remote: null },
+  pairingGateway: null,
+  discoveredGateways: [],
   limitsView: "remaining",
   limits: {
     ok: false,
@@ -353,6 +355,23 @@ function mockApi() {
         ],
         lan: true,
       };
+    },
+    async discover_gateways() {
+      return {
+        ok: true,
+        gateways: [
+          {
+            url: "http://192.168.0.26:8770",
+            urls: ["http://192.168.0.26:8770"],
+            hostname: "DESKTOP-DEMO",
+            device_id: "baton-demo",
+            local: false,
+          },
+        ],
+      };
+    },
+    async pair_control(gateway_url, code) {
+      return { ok: true, gateway_url, hostname: "DESKTOP-DEMO" };
     },
     async limits() {
       const now = Math.floor(Date.now() / 1000);
@@ -602,6 +621,11 @@ async function boot() {
   $("connection-save").addEventListener("click", saveConnection);
   $("connection-local").addEventListener("click", useLocalConnection);
   $("remote-copy").addEventListener("click", copyRemoteConnection);
+  $("discover-gateways").addEventListener("click", discoverGateways);
+  $("pair-control").addEventListener("click", pairWithDevice);
+  $("pair-code").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") pairWithDevice();
+  });
   $("rest-save").addEventListener("click", saveRestConfig);
   $("rest-minutes").addEventListener("input", () => {
     state.restDirty = true;
@@ -1243,6 +1267,130 @@ function renderConnection() {
   } else if (note && (!remote || !remote.ok)) {
     note.textContent = "";
     note.dataset.state = "";
+  }
+}
+
+const PAIR_ERRORS = {
+  bad_code: "Código incorrecto.",
+  rate_limited: "Demasiados intentos. Espera un minuto.",
+  replay: "Ese código ya se usó. Espera al siguiente.",
+  expired: "El código ha caducado. Prueba con el siguiente.",
+  virtual_device_disabled: "El dispositivo virtual está desactivado.",
+  pair_failed: "No se pudo vincular el dispositivo.",
+};
+
+function pairError(error) {
+  return PAIR_ERRORS[error] || "No se pudo vincular: " + String(error);
+}
+
+function selectPairingGateway(gateway) {
+  state.pairingGateway = gateway;
+  for (const item of document.querySelectorAll(".gateway-item")) {
+    item.classList.toggle(
+      "is-selected",
+      item.dataset.url === gateway.url
+    );
+  }
+  const row = $("pair-row");
+  row.hidden = false;
+  const note = $("discover-note");
+  note.textContent = `Dispositivo: ${
+    gateway.hostname || gateway.url
+  }. Escribe el código de Google Authenticator.`;
+  note.dataset.state = "ok";
+  $("pair-code").focus();
+}
+
+async function discoverGateways() {
+  const button = $("discover-gateways");
+  const note = $("discover-note");
+  const list = $("gateway-list");
+  button.disabled = true;
+  note.textContent = "Buscando dispositivos en la red…";
+  note.dataset.state = "";
+  list.replaceChildren();
+  $("pair-row").hidden = true;
+  state.pairingGateway = null;
+  try {
+    const result = await state.api.discover_gateways();
+    if (!result || !result.ok) {
+      note.textContent = "No se pudo buscar dispositivos.";
+      note.dataset.state = "error";
+      return;
+    }
+    const gateways = Array.isArray(result.gateways)
+      ? result.gateways
+      : [];
+    state.discoveredGateways = gateways;
+    if (!gateways.length) {
+      note.textContent =
+        "No se encontró ningún dispositivo. Comprueba que estén en la misma red.";
+      note.dataset.state = "error";
+      return;
+    }
+    note.textContent =
+      "Dispositivos encontrados. Elige el del QR que has escaneado.";
+    note.dataset.state = "ok";
+    for (const gateway of gateways) {
+      const item = el("button", "gateway-item");
+      item.type = "button";
+      item.dataset.url = gateway.url;
+      const name = el(
+        "span",
+        "gateway-name",
+        `${gateway.hostname || "batonAI"}${gateway.local ? " · este PC" : ""}`
+      );
+      const url = el("span", "gateway-url", gateway.url);
+      item.append(name, url);
+      item.addEventListener("click", () => selectPairingGateway(gateway));
+      list.append(item);
+    }
+    const remote = gateways.filter((gateway) => !gateway.local);
+    if (remote.length === 1) selectPairingGateway(remote[0]);
+  } catch (error) {
+    note.textContent = "Error al buscar: " + String(error);
+    note.dataset.state = "error";
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function pairWithDevice() {
+  const gateway = state.pairingGateway;
+  const note = $("discover-note");
+  const code = $("pair-code").value.trim();
+  if (!gateway) {
+    note.textContent = "Primero elige un dispositivo.";
+    note.dataset.state = "error";
+    return;
+  }
+  if (!/^\d{6}$/.test(code)) {
+    note.textContent = "Escribe los 6 dígitos de Google Authenticator.";
+    note.dataset.state = "error";
+    return;
+  }
+  const button = $("pair-control");
+  button.disabled = true;
+  try {
+    const result = await state.api.pair_control(gateway.url, code);
+    if (!result || !result.ok) {
+      note.textContent = pairError(result && result.error);
+      note.dataset.state = "error";
+      return;
+    }
+    note.textContent = "Vinculado. Conectando…";
+    note.dataset.state = "ok";
+    $("pair-row").hidden = true;
+    $("pair-code").value = "";
+    await loadConnection();
+    await refresh();
+    note.textContent = "Vinculado correctamente.";
+    note.dataset.state = "ok";
+  } catch (error) {
+    note.textContent = "Error al vincular: " + String(error);
+    note.dataset.state = "error";
+  } finally {
+    button.disabled = false;
   }
 }
 

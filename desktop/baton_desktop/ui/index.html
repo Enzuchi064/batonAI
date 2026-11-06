@@ -160,55 +160,82 @@
           <div class="connection-head">
             <div>
               <span class="card-kicker">Conexión</span>
-              <p class="connection-title">Gateway local o remoto</p>
+              <p class="connection-title">Vincular con Google Authenticator</p>
             </div>
             <span id="connection-state" class="badge" data-state="off">—</span>
           </div>
           <p class="muted">
-            Si el dispositivo está en otro PC, pega aquí su URL y su token de
-            control. Para volver a este PC, pulsa «Usar este PC».
+            En el dispositivo, escanea el QR con Google Authenticator. Aquí
+            busca el dispositivo y escribe el código de 6 dígitos. No hace falta
+            copiar URL ni token.
           </p>
-          <div class="connection-grid">
-            <label class="connection-field">
-              <span>URL</span>
-              <input
-                id="connection-url"
-                class="connection-input"
-                type="text"
-                placeholder="http://192.168.0.26:8770"
-                spellcheck="false"
-              >
-            </label>
-            <label class="connection-field">
-              <span>Token</span>
-              <input
-                id="connection-token"
-                class="connection-input"
-                type="password"
-                placeholder="token de control"
-                spellcheck="false"
-              >
-            </label>
+
+          <div class="pair-remote">
             <div class="connection-actions">
-              <button id="connection-save" class="button" type="button">Conectar</button>
-              <button id="connection-local" class="mini" type="button">Usar este PC</button>
+              <button id="discover-gateways" class="button" type="button">Buscar dispositivo</button>
+              <span id="discover-note" class="muted"></span>
+            </div>
+            <div id="gateway-list" class="gateway-list"></div>
+            <div id="pair-row" class="pair-row" hidden>
+              <label class="connection-field">
+                <span>Código de Google Authenticator</span>
+                <input
+                  id="pair-code"
+                  class="connection-input"
+                  type="text"
+                  inputmode="numeric"
+                  autocomplete="one-time-code"
+                  maxlength="6"
+                  placeholder="000000"
+                >
+              </label>
+              <button id="pair-control" class="button" type="button">Vincular</button>
             </div>
           </div>
-          <p id="connection-note" class="muted"></p>
-          <div id="remote-access" class="remote-access" hidden>
-            <span class="card-kicker">Acceso desde otro PC</span>
-            <div class="remote-line">
-              <span>URL</span>
-              <code id="remote-url">—</code>
-              <button id="remote-copy" class="mini" type="button">Copiar URL + token</button>
+
+          <details class="connection-advanced">
+            <summary>Conexión manual (avanzado)</summary>
+            <div class="connection-grid">
+              <label class="connection-field">
+                <span>URL</span>
+                <input
+                  id="connection-url"
+                  class="connection-input"
+                  type="text"
+                  placeholder="http://192.168.0.26:8770"
+                  spellcheck="false"
+                >
+              </label>
+              <label class="connection-field">
+                <span>Token</span>
+                <input
+                  id="connection-token"
+                  class="connection-input"
+                  type="password"
+                  placeholder="token de control"
+                  spellcheck="false"
+                >
+              </label>
+              <div class="connection-actions">
+                <button id="connection-save" class="button" type="button">Conectar</button>
+                <button id="connection-local" class="mini" type="button">Usar este PC</button>
+              </div>
             </div>
-            <div class="remote-line">
-              <span>Token</span>
-              <code id="remote-token" class="mono">—</code>
+            <p id="connection-note" class="muted"></p>
+            <div id="remote-access" class="remote-access" hidden>
+              <span class="card-kicker">Acceso desde otro PC</span>
+              <div class="remote-line">
+                <span>URL</span>
+                <code id="remote-url">—</code>
+                <button id="remote-copy" class="mini" type="button">Copiar URL + token</button>
+              </div>
+              <div class="remote-line">
+                <span>Token</span>
+                <code id="remote-token" class="mono">—</code>
+              </div>
+              <p id="remote-alt" class="muted"></p>
             </div>
-            <p id="remote-alt" class="muted"></p>
-            <p class="muted">Pega estos datos en la app del otro PC.</p>
-          </div>
+          </details>
         </div>
         <div class="card limits-card">
           <div class="limits-head">

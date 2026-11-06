@@ -188,6 +188,18 @@ class VirtualDevice:
             raise VirtualPairingError("replay", "ese código ya se ha usado")
         return step
 
+    def verify_control_code(self, code: str) -> int:
+        """Valida un código TOTP para vincular una app de control remota."""
+        step = self._check_code(code.strip())
+        self.attempts = 0
+        self.last_step = step
+        self.audit.add_event(
+            "control_paired",
+            device_id=self.device_id,
+            payload={"virtual": True},
+        )
+        return step
+
     def pair(self, code: str, pc_name: str) -> dict[str, Any]:
         """Valida el código.
 

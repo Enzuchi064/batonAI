@@ -54,6 +54,10 @@ class PairRequest(BaseModel):
     device_name: str = Field(default="dispositivo", max_length=64)
 
 
+class ControlPairRequest(BaseModel):
+    code: str = Field(min_length=6, max_length=8)
+
+
 class ForceApprovalRequest(BaseModel):
     risk: Literal["low", "normal", "high", "critical"] = "normal"
 
@@ -177,6 +181,23 @@ def create_app(
         except PairingError as exc:
             raise HTTPException(status_code=401, detail=exc.code) from exc
 
+    @app.post("/api/control/pair")
+    async def control_pair(body: ControlPairRequest) -> dict[str, Any]:
+        device = services.virtual_device
+        if device is None:
+            raise HTTPException(
+                status_code=404, detail="virtual_device_disabled"
+            )
+        try:
+            device.verify_control_code(body.code)
+        except VirtualPairingError as exc:
+            raise HTTPException(status_code=401, detail=exc.code) from exc
+        return {
+            "ok": True,
+            "token": services.remote_token,
+            "hostname": socket.gethostname(),
+        }
+
     # -- administración local ---------------------------------------------
 
     @app.get("/api/dev/bootstrap", dependencies=[Depends(_require_loopback)])
@@ -272,7 +293,8 @@ def create_app(
             probe.close()
         except OSError:
             primary = None
-        if primary and not any(item["url"] == primary for item in urls):
+        if primary:
+            urls = [item for item in urls if item["url"] != primary]
             urls.insert(0, {"interface": "principal", "url": primary})
 
         return {

@@ -218,6 +218,28 @@ def test_rest_config_persists(tmp_path):
         assert second.get("/api/config/rest").json()["rest_after_s"] == 420
 
 
+def test_control_pair_with_google_code(app):
+    from baton import totp
+
+    device = app.state.services.virtual_device
+    assert device is not None
+    code = totp.totp(device.secret)
+
+    bad_code = "000000" if code != "000000" else "111111"
+    with TestClient(app, client=("10.0.0.7", 1234)) as remote:
+        bad = remote.post("/api/control/pair", json={"code": bad_code})
+        assert bad.status_code == 401
+
+        good = remote.post("/api/control/pair", json={"code": code})
+        assert good.status_code == 200
+        assert good.json()["token"] == app.state.services.remote_token
+
+        # Un código ya usado no se puede reutilizar.
+        replay = remote.post("/api/control/pair", json={"code": code})
+        assert replay.status_code == 401
+        assert replay.json()["detail"] == "replay"
+
+
 def test_remote_control_requires_token(app):
     token = app.state.services.remote_token
 

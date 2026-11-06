@@ -1,5 +1,5 @@
 #define MyAppName "batonAI"
-#define MyAppVersion "0.2.0"
+#define MyAppVersion "0.3.0"
 #define MyAppPublisher "batonAI"
 #define MyAppExeName "batonAI-control.exe"
 

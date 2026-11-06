@@ -126,7 +126,7 @@ batonAI/
     │   │   ├── opencode.py           permisos, prompts e interrupción de OpenCode
     │   │   └── supervisor.py         orquestación
     │   └── static/                   panel web (HTML/CSS/JS sin build)
-    ├── tests/                        135 pruebas
+    ├── tests/                        136 pruebas
     └── var/                          base de datos (no versionada)
 ```
 
@@ -665,6 +665,7 @@ Endpoints:
 | `GET /api/config/rest` | loopback | Minutos de inactividad antes del reposo |
 | `PATCH /api/config/rest` | loopback | Cambia y persiste el modo reposo |
 | `GET /api/config/remote` | loopback | Token y URLs para control desde otro PC |
+| `POST /api/control/pair` | LAN | Vincula la app con el código de Google Authenticator |
 | `GET /api/limits` | loopback | Límites de todas las IAs y selección |
 | `GET /api/codex/limits` | loopback | Compatibilidad: solo Codex |
 | `PATCH /api/config/limits` | loopback | Cambia ventanas (`windows`) y modo (`view`) |
@@ -684,7 +685,7 @@ panel; el gateway solo emite el token cuando el emparejamiento termina.
 
 ## 12. Pruebas
 
-135 pruebas (pytest) sobre las piezas donde un fallo es caro:
+136 pruebas (pytest) sobre las piezas donde un fallo es caro:
 
 - **Estado:** transiciones válidas e inválidas, `since`, limpieza de aprobación,
   orden del dashboard, `seq`, límite del log.

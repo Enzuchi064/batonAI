@@ -160,6 +160,10 @@ adaptador no admite la acción. El supervisor registra `agent_interrupted` y
 - Las peticiones desde LAN requieren `Authorization: Bearer <token>`.
 - El token se genera la primera vez y se guarda en `settings.remote_token` de
   SQLite.
+- `POST /api/control/pair` valida el código TOTP de Google Authenticator y
+  devuelve el token de control. Tiene límite de intentos.
+- El gateway responde a un broadcast UDP en el puerto `8766` para que la app
+  descubra el dispositivo en la LAN.
 - `GET /api/config/remote` (solo loopback) devuelve token, URL principal e
   interfaces disponibles.
 - El instalador crea la regla de firewall para `batonAI-gateway.exe` en el
@@ -273,7 +277,7 @@ Atajos del panel: `A` permitir, `B` denegar, `←`/`→` cambiar de agente,
 .\.venv\Scripts\python.exe -m baton serve [--host H] [--port P] [--fake]
 .\.venv\Scripts\python.exe -m baton pair      # imprime un código y sale
 .\.venv\Scripts\baton.exe serve               # mismo CLI, instalado
-.\.venv\Scripts\python.exe -m pytest -q       # 135 pruebas
+.\.venv\Scripts\python.exe -m pytest -q       # 136 pruebas
 ```
 
 ## Estructura

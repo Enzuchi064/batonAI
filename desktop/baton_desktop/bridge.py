@@ -10,16 +10,20 @@ este puente ya no mantiene una copia local.
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import os
+import socket
 import subprocess
 import sys
+import time
 import webbrowser
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
 import httpx
+import psutil
 
 DEFAULT_GATEWAY = "http://127.0.0.1:8770"
 _LOCAL_APP_DATA = (
@@ -28,6 +32,8 @@ _LOCAL_APP_DATA = (
     else Path.home()
 )
 CONTROL_CONFIG = _LOCAL_APP_DATA / "batonAI" / "control.json"
+DISCOVERY_PORT = 8766
+DISCOVERY_MESSAGE = b"BATONAI_DISCOVER_V1"
 
 
 def _load_control_config() -> dict[str, Any]:
@@ -51,6 +57,69 @@ def _save_control_config(gateway_url: str, gateway_token: str) -> None:
         ),
         encoding="utf-8",
     )
+
+
+def _broadcast_addresses() -> list[str]:
+    addresses = {"255.255.255.255", "127.0.0.1"}
+    try:
+        for interface_addresses in psutil.net_if_addrs().values():
+            for address in interface_addresses:
+                if address.family != socket.AF_INET:
+                    continue
+                if not address.netmask or address.address.startswith("127."):
+                    continue
+                try:
+                    network = ipaddress.IPv4Network(
+                        f"{address.address}/{address.netmask}", strict=False
+                    )
+                except ValueError:
+                    continue
+                addresses.add(str(network.broadcast_address))
+    except Exception:
+        pass
+    return sorted(addresses)
+
+
+def discover_gateways(timeout: float = 2.0) -> list[dict[str, Any]]:
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    sock.settimeout(0.2)
+    try:
+        for address in _broadcast_addresses():
+            try:
+                sock.sendto(DISCOVERY_MESSAGE, (address, DISCOVERY_PORT))
+            except OSError:
+                continue
+        deadline = time.monotonic() + max(0.5, timeout)
+        found: dict[str, dict[str, Any]] = {}
+        while time.monotonic() < deadline:
+            try:
+                data, address = sock.recvfrom(4096)
+            except socket.timeout:
+                continue
+            except OSError:
+                break
+            try:
+                payload = json.loads(data.decode("utf-8"))
+            except (ValueError, UnicodeDecodeError):
+                continue
+            if payload.get("service") != "batonai":
+                continue
+            urls = [str(url) for url in payload.get("urls") or []]
+            if not urls:
+                continue
+            found[urls[0]] = {
+                "url": urls[0],
+                "urls": urls,
+                "hostname": str(payload.get("hostname") or ""),
+                "device_id": str(payload.get("device_id") or ""),
+                "version": str(payload.get("version") or ""),
+                "address": address[0],
+                "local": payload.get("hostname") == socket.gethostname(),
+            }
+        return list(found.values())
+    finally:
+        sock.close()
 
 
 def resolve_gateway(
@@ -302,6 +371,50 @@ class Bridge:
         if not result["ok"]:
             return {"ok": False, "error": result["error"]}
         return {"ok": True, **result["data"]}
+
+    def discover_gateways(self) -> dict[str, Any]:
+        try:
+            gateways = discover_gateways()
+        except OSError as exc:
+            return {"ok": False, "error": type(exc).__name__}
+        return {"ok": True, "gateways": gateways}
+
+    def pair_control(self, gateway_url: str, code: str) -> dict[str, Any]:
+        url = str(gateway_url or "").strip().rstrip("/")
+        if not url.startswith(("http://", "https://")):
+            url = "http://" + url
+        try:
+            with httpx.Client(timeout=5.0) as client:
+                response = client.post(
+                    f"{url}/api/control/pair",
+                    json={"code": str(code or "").strip()},
+                )
+        except httpx.HTTPError as exc:
+            return {"ok": False, "error": type(exc).__name__}
+        if response.status_code != 200:
+            try:
+                detail = response.json().get("detail", "pair_failed")
+            except ValueError:
+                detail = "pair_failed"
+            return {"ok": False, "error": str(detail)}
+        try:
+            payload = response.json()
+        except ValueError:
+            return {"ok": False, "error": "invalid_response"}
+        token = str(payload.get("token") or "")
+        if not token:
+            return {"ok": False, "error": "missing_token"}
+        try:
+            _save_control_config(url, token)
+        except OSError as exc:
+            return {"ok": False, "error": type(exc).__name__}
+        self.gateway_url = url
+        self.gateway_token = token
+        return {
+            "ok": True,
+            "gateway_url": url,
+            "hostname": payload.get("hostname"),
+        }
 
     def pairing_code(self) -> dict[str, Any]:
         result = self._request("GET", "/api/dev/pairing")

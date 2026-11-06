@@ -111,15 +111,16 @@ los planes reales de cada IA, no presupuestos manuales.
 
 ## Control desde otro PC
 
-El gateway del PC del dispositivo escucha en la red privada y exige token para
-peticiones remotas. En **Ajustes → Conexión**:
+En **Ajustes → Conexión** la app puede vincularse con Google Authenticator:
 
-- el PC del dispositivo muestra la URL de LAN y el token en **Acceso desde otro
-  PC**;
-- el otro PC pega esa URL y token y pulsa **Conectar**.
+1. En el dispositivo, escanea el QR con Google Authenticator.
+2. En el otro PC, pulsa **Buscar dispositivo**. La app descubre el gateway en
+   la red local.
+3. Escribe el código de 6 dígitos y pulsa **Vincular**.
 
-La app guarda la conexión en `%LOCALAPPDATA%\batonAI\control.json`. El botón
-**Usar este PC** vuelve al gateway local.
+No hay que copiar URL ni token. La app guarda la conexión en
+`%LOCALAPPDATA%\batonAI\control.json`; **Usar este PC** vuelve al gateway local.
+La conexión manual con URL/token queda disponible en **Avanzado**.
 
 Cuando un agente pide permiso, la hoja de aprobación muestra un **radar de
 peligro** con nivel `1/4`–`4/4`, color y motivos en lenguaje normal. Para riesgo

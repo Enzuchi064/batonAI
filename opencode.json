@@ -1,0 +1,21 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permissions": [
+    { "action": "bash", "resource": "*rm -rf*", "effect": "ask" },
+    { "action": "bash", "resource": "*git push*--force*", "effect": "ask" },
+    { "action": "bash", "resource": "*git reset --hard*", "effect": "ask" },
+    { "action": "bash", "resource": "*sudo *", "effect": "ask" },
+    { "action": "bash", "resource": "*format *", "effect": "ask" },
+    { "action": "bash", "resource": "*shutdown*", "effect": "ask" },
+    { "action": "bash", "resource": "*del /f*", "effect": "ask" },
+    { "action": "bash", "resource": "*del /s*", "effect": "ask" },
+    { "action": "bash", "resource": "*reg delete*", "effect": "ask" },
+    { "action": "bash", "resource": "*takeown*", "effect": "ask" },
+    { "action": "bash", "resource": "*icacls*", "effect": "ask" },
+    { "action": "bash", "resource": "*drop database*", "effect": "ask" },
+    { "action": "bash", "resource": "*drop table*", "effect": "ask" },
+    { "action": "bash", "resource": "*mkfs*", "effect": "ask" },
+    { "action": "bash", "resource": "*diskpart*", "effect": "ask" },
+    { "action": "bash", "resource": "*chmod 777*", "effect": "ask" }
+  ]
+}

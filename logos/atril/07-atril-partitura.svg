@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- batonAI — atril con partitura -->
+  <rect width="512" height="512" fill="#171616"/>
+  <g transform="translate(-10,-28)" fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="256" cy="424" rx="84" ry="17" stroke-width="12"/>
+    <path d="M256 304 V414" stroke-width="12"/>
+    <path d="M168 200 L392 184 L368 296 L144 312 Z" stroke-width="12"/>
+    <path d="M184 212 L352 200" stroke-width="7"/>
+    <path d="M184 232 L352 220" stroke-width="7"/>
+    <path d="M184 252 L352 240" stroke-width="7"/>
+    <path d="M184 272 L352 260" stroke-width="7"/>
+    <path d="M160 352 L368 144" stroke="#171616" stroke-width="30"/>
+    <path d="M198 314 L368 144" stroke-width="9"/>
+    <path d="M160 352 L198 314" stroke-width="16"/>
+  </g>
+</svg>

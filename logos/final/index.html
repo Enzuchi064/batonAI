@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>batonAI — identidad · atril + batuta</title>
+<style>
+  :root{
+    --bg:#0b0c08; --panel:#151610; --line:#2b2c24;
+    --ink:#ece9df; --mut:#8d8a7e; --dim:#616048;
+    --signal:#d45a35;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding:64px 56px 88px;
+  }
+  .wrap{max-width:1100px;margin:0 auto}
+  header{display:flex;align-items:baseline;justify-content:space-between;
+         border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:8px}
+  h1{font-size:19px;font-weight:600;letter-spacing:-.01em;margin:0}
+  header span{font-size:11px;color:var(--dim);letter-spacing:.18em;text-transform:uppercase}
+
+  .hero{display:flex;align-items:center;justify-content:center;padding:68px 0 54px}
+  .hero img{width:340px;height:340px}
+
+  .label{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);margin:0 0 14px}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin-bottom:54px}
+  .card{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--panel)}
+  .card .shape{aspect-ratio:16/10;display:flex;align-items:center;justify-content:center}
+  .card .shape img{width:200px;height:200px}
+  .card .meta{display:flex;justify-content:space-between;align-items:baseline;
+              padding:12px 18px;border-top:1px solid var(--line);font-size:12px;color:var(--mut)}
+  .card .meta b{color:var(--ink);font-weight:500}
+  .light{background:#ffffff}
+
+  .sizes{display:flex;align-items:flex-end;gap:34px;padding:26px 30px;
+         border:1px solid var(--line);border-radius:16px;background:var(--panel);margin-bottom:54px}
+  .sizes figure{margin:0;text-align:center}
+  .sizes img{display:block;margin:0 auto 10px}
+  .sizes figcaption{font-size:10px;color:var(--dim);letter-spacing:.1em}
+  .sizes .note{margin-left:auto;max-width:250px;font-size:12px;line-height:1.55;color:var(--dim)}
+
+  .specs{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  .spec{border-top:1px solid var(--line);padding-top:14px}
+  .spec h3{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);
+           font-weight:500;margin:0 0 9px}
+  .spec p{margin:0;font-size:13px;line-height:1.6;color:var(--mut)}
+  .swatches{display:flex;gap:8px;margin-top:12px}
+  .sw{width:28px;height:28px;border-radius:50%;border:1px solid #3a3b33}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>batonAI — marca definitiva</h1>
+    <span>Atril de director + batuta</span>
+  </header>
+
+  <div class="hero">
+    <img src="batonai-mark-light.svg" alt="Marca batonAI">
+  </div>
+
+  <p class="label">Variantes</p>
+  <div class="grid">
+    <div class="card">
+      <div class="shape" style="background:#151610"><img src="batonai-mark-light.svg" alt=""></div>
+      <div class="meta"><b>Marca principal</b><span>sobre fondo oscuro</span></div>
+    </div>
+    <div class="card">
+      <div class="shape light"><img src="batonai-mark-dark.svg" alt=""></div>
+      <div class="meta"><b>Marca principal</b><span>sobre fondo claro</span></div>
+    </div>
+    <div class="card">
+      <div class="shape light"><img src="batonai-icon.svg" alt=""></div>
+      <div class="meta"><b>Icono de app</b><span>favicon · avatar</span></div>
+    </div>
+    <div class="card">
+      <div class="shape" style="background:#151610"><img src="batonai-lockup-light.svg" style="width:260px;height:260px" alt=""></div>
+      <div class="meta"><b>Lockup vertical</b><span>marca + batonAI</span></div>
+    </div>
+    <div class="card">
+      <div class="shape" style="background:#151610"><img src="batonai-mark-mono.svg" alt=""></div>
+      <div class="meta"><b>Monocroma</b><span>una sola tinta</span></div>
+    </div>
+    <div class="card">
+      <div class="shape light"><img src="batonai-lockup-dark.svg" style="width:260px;height:260px" alt=""></div>
+      <div class="meta"><b>Lockup vertical</b><span>sobre fondo claro</span></div>
+    </div>
+  </div>
+
+  <p class="label">Legibilidad en pequeño</p>
+  <div class="sizes">
+    <figure><img src="png/icon-128.png" width="128" height="128"><figcaption>128 · app</figcaption></figure>
+    <figure><img src="png/icon-64.png" width="64" height="64"><figcaption>64 · app</figcaption></figure>
+    <figure><img src="png/favicon-48.png" width="48" height="48"><figcaption>48 · favicon</figcaption></figure>
+    <figure><img src="png/favicon-32.png" width="32" height="32"><figcaption>32 · favicon</figcaption></figure>
+    <figure><img src="png/favicon-16.png" width="16" height="16"><figcaption>16 · favicon</figcaption></figure>
+    <div class="note">Por debajo de 48 px se usa la versión simplificada: mismo símbolo, sin pie ni base.</div>
+  </div>
+
+  <div class="specs">
+    <div class="spec">
+      <h3>Color</h3>
+      <p>Tinta, chasis y señal de la app. La batuta lleva el naranja; el atril, la tinta.</p>
+      <div class="swatches">
+        <div class="sw" style="background:#ece9df"></div>
+        <div class="sw" style="background:#151610"></div>
+        <div class="sw" style="background:#d45a35"></div>
+      </div>
+    </div>
+    <div class="spec">
+      <h3>Construcción</h3>
+      <p>Tablero en perspectiva con canto, pie central y base elíptica. La batuta cruza por delante con un hueco de separación.</p>
+    </div>
+    <div class="spec">
+      <h3>Archivos</h3>
+      <p>SVG editable + PNG. El hueco de la batuta es transparente (máscara), así que funciona sobre cualquier fondo.</p>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

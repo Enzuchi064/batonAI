@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>batonAI · control</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <meta name="theme-color" content="#151610">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="nameplate">
+      <div class="brand">
+        <img class="brand-mark" src="logo-glyph.svg" alt="" width="26" height="26">
+        <span>baton<span class="brand-ai">AI</span></span>
+      </div>
+
+      <nav class="tabs" aria-label="Secciones">
+        <button class="tab is-active" data-view="agents" type="button">Agentes</button>
+        <button class="tab" data-view="hardware" type="button">Hardware</button>
+        <button class="tab" data-view="audit" type="button">Auditoría</button>
+        <button class="tab" data-view="settings" type="button">Ajustes</button>
+      </nav>
+
+      <span id="gateway" class="status" data-state="off" title="">
+        <span class="led"></span>
+        <span id="gateway-text">gateway…</span>
+      </span>
+    </header>
+
+    <main class="panel">
+      <div class="panel-head">
+        <div>
+          <h1 id="view-title">Configuración de agentes</h1>
+          <p id="view-lede" class="lede">Elige qué agentes se muestran en el hardware. Los ocultos siguen trabajando.</p>
+        </div>
+        <div class="meta">
+          <span id="summary" class="summary">Cargando…</span>
+          <button id="refresh" class="refresh" type="button">Recargar</button>
+        </div>
+      </div>
+
+      <div id="banner" class="banner" hidden></div>
+
+      <section id="view-agents" class="view" data-view="agents">
+        <div class="toolbar">
+          <input
+            id="agent-search"
+            class="search-input"
+            type="search"
+            placeholder="Buscar agente, proyecto o modelo…"
+            aria-label="Buscar agentes"
+          >
+          <select id="filter-status" class="select" aria-label="Filtrar por estado">
+            <option value="all">Todos los estados</option>
+            <option value="waiting_input">Esperando</option>
+            <option value="running">Trabajando</option>
+            <option value="done">Terminados</option>
+            <option value="idle">En espera</option>
+            <option value="error">Con error</option>
+            <option value="offline">Desconectados</option>
+          </select>
+          <select id="filter-provider" class="select" aria-label="Filtrar por proveedor">
+            <option value="all">Todos los proveedores</option>
+          </select>
+          <select id="filter-sort" class="select" aria-label="Ordenar agentes">
+            <option value="status">Ordenar por estado</option>
+            <option value="name">Ordenar por nombre</option>
+            <option value="recent">Más recientes</option>
+            <option value="project">Por proyecto</option>
+          </select>
+          <div class="toolbar-actions">
+            <button id="show-all" class="mini" type="button">Mostrar todos</button>
+            <button id="hide-all" class="mini" type="button">Ocultar todos</button>
+            <button id="clear-pins" class="mini" type="button">Limpiar fijados</button>
+          </div>
+        </div>
+        <div id="stats" class="stats"></div>
+        <section id="agents" class="rack" aria-label="Agentes"></section>
+      </section>
+
+      <section id="view-hardware" class="view" data-view="hardware" hidden>
+        <div class="split">
+          <article class="card">
+            <span class="card-kicker">Dispositivo mock · 480×320</span>
+            <div class="mock-head">
+              <span id="virtual-state" class="badge" data-state="wait">sin emparejar</span>
+              <span id="virtual-id" class="mono mock-id">—</span>
+            </div>
+            <p class="muted">
+              El QR de emparejamiento se muestra en la pantalla del dispositivo.
+              Ábrelo, escanéalo con Google Authenticator y vuelve aquí para
+              introducir el código.
+            </p>
+            <div id="panel-url" class="mono panel-url">—</div>
+            <button id="open-panel" class="button" type="button">Abrir panel</button>
+          </article>
+
+          <article class="card">
+            <span class="card-kicker">Google Authenticator</span>
+            <p class="muted">
+              Introduce el código de 6 dígitos de la cuenta <b>batonAI</b>.
+            </p>
+            <label class="field" for="virtual-code">Código</label>
+            <input
+              id="virtual-code"
+              class="code-input"
+              type="text"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              maxlength="6"
+              placeholder="000000"
+            >
+            <button id="virtual-pair" class="button" type="button">Emparejar</button>
+
+            <div id="virtual-confirm" class="confirm-box" hidden>
+              <p>
+                Mira la pantalla del dispositivo y pulsa <strong>A</strong>.
+                SAS <span id="virtual-sas" class="mono">0000</span>
+              </p>
+            </div>
+
+            <p id="virtual-result" class="result" hidden></p>
+
+            <div class="virtual-actions">
+              <button id="virtual-unpair" class="mini" type="button">Desemparejar</button>
+              <button id="virtual-reset" class="mini danger" type="button">Nuevo QR</button>
+              <label class="dev-reveal">
+                <input id="virtual-show-code" type="checkbox">
+                ver código (dev)
+              </label>
+            </div>
+            <p id="virtual-code-hint" class="muted mono" hidden></p>
+          </article>
+        </div>
+
+        <div class="section-head">
+          <h2>Dispositivos</h2>
+          <span id="devices-count" class="muted"></span>
+        </div>
+        <div id="devices" class="device-list"></div>
+      </section>
+
+      <section id="view-audit" class="view" data-view="audit" hidden>
+        <div class="section-head">
+          <h2>Aprobaciones recientes</h2>
+          <span id="audit-count" class="muted"></span>
+        </div>
+        <div id="approvals" class="audit-list"></div>
+        <div class="section-head">
+          <h2>Eventos</h2>
+        </div>
+        <div id="events" class="audit-list compact"></div>
+      </section>
+
+      <section id="view-settings" class="view" data-view="settings" hidden>
+        <div class="card limits-card">
+          <div class="limits-head">
+            <div class="limits-intro">
+              <span class="card-kicker">Límites de las IAs</span>
+              <p class="limits-headline">Lo que te queda, de un vistazo.</p>
+              <p class="muted">
+                Cada ventana tiene un ojo: activa las que quieres ver en el
+                dispositivo.
+              </p>
+            </div>
+            <div id="limits-summary" class="limits-summary"></div>
+          </div>
+          <div class="limits-controls">
+            <span class="limits-controls-label">Mostrar</span>
+            <div id="limits-view" class="segmented" role="group" aria-label="Mostrar restante o gastado">
+              <button type="button" data-view="remaining">Restante</button>
+              <button type="button" data-view="used">Gastado</button>
+            </div>
+            <span id="limits-note" class="muted"></span>
+          </div>
+          <div class="ticker-preview">
+            <span class="ticker-preview-label">Cinta</span>
+            <span id="ticker-preview" class="ticker-preview-text">—</span>
+          </div>
+          <div id="limits-providers" class="limit-providers"></div>
+          <p id="limits-status" class="muted limits-status"></p>
+        </div>
+        <div class="card rest-config-card">
+          <span class="card-kicker">Modo reposo del dispositivo</span>
+          <p class="muted">
+            Minutos sin actividad antes de atenuar la pantalla y empezar a
+            recoger el resumen. 0 lo desactiva.
+          </p>
+          <div class="rest-config-row">
+            <label for="rest-minutes">Minutos</label>
+            <input
+              id="rest-minutes"
+              class="rest-input"
+              type="number"
+              min="0"
+              max="60"
+              step="1"
+            >
+            <button id="rest-save" class="button" type="button">Guardar</button>
+          </div>
+          <p id="rest-save-note" class="muted">
+            El panel lo aplica en menos de 30 segundos.
+          </p>
+        </div>
+        <div id="settings" class="settings-grid"></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>La configuración vive en el gateway y la aplican el panel y el hardware.</span>
+      <span>batonAI · control</span>
+    </footer>
+  </div>
+
+  <div id="drawer" class="drawer" hidden>
+    <div id="drawer-backdrop" class="drawer-backdrop"></div>
+    <aside class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="drawer-name">
+      <header class="drawer-head">
+        <div id="drawer-logo" class="logo"></div>
+        <div class="drawer-title">
+          <h2 id="drawer-name"></h2>
+          <p id="drawer-sub" class="muted"></p>
+        </div>
+        <button id="drawer-close" class="drawer-close" type="button" aria-label="Cerrar detalle">×</button>
+      </header>
+      <div id="drawer-body" class="drawer-body"></div>
+    </aside>
+  </div>
+
+  <div id="toasts" class="toasts" aria-live="polite" aria-atomic="false"></div>
+
+  <script src="app.js?v=24" defer></script>
+</body>
+</html>

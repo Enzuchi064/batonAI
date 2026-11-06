@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" fill="#171616"/>
+  <g transform="translate(-20,-4)" fill="none" stroke="#FFFFFF" stroke-linecap="round">
+    <!-- baton -->
+    <path d="M176 352 L296 232" stroke-width="11"/>
+    <!-- signal arcs radiating from the tip -->
+    <path d="M287.63 186.53 A42 42 0 0 1 343.36 233.29" stroke-width="10"/>
+    <path d="M277.38 158.34 A72 72 0 0 1 372.91 238.50" stroke-width="10"/>
+    <path d="M267.11 130.15 A102 102 0 0 1 402.45 243.71" stroke-width="10"/>
+  </g>
+  <circle cx="302" cy="226" r="9" fill="#FFFFFF"/>
+</svg>

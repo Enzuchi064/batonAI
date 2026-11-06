@@ -1,0 +1,16 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- batonAI — icono de app, color -->
+  <rect x="48" y="48" width="416" height="416" rx="96" fill="#151610"/>
+  <g transform="translate(256,258) scale(1.05) translate(-258,-258.5)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <g stroke="#ECE9DF">
+      <ellipse cx="246" cy="390" rx="84" ry="17" stroke-width="12"/>
+      <path d="M246 270 V380" stroke-width="12"/>
+      <path d="M158 166 L382 150 L358 262 L134 278 Z" stroke-width="12"/>
+      <path d="M158 152 L382 136 L382 150 L158 166 Z" fill="#ECE9DF" stroke-width="10"/>
+    </g>
+    <path d="M150 318 L188 280" stroke="#151610" stroke-width="28"/>
+    <path d="M188 280 L358 110" stroke="#151610" stroke-width="24"/>
+    <path d="M150 318 L188 280" stroke="#D45A35" stroke-width="15"/>
+    <path d="M188 280 L358 110" stroke="#D45A35" stroke-width="9"/>
+  </g>
+</svg>

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" fill="#171616"/>
+  <g transform="translate(-19,26)" fill="none" stroke="#FFFFFF" stroke-linecap="round">
+    <path d="M200 250 L290 160" stroke-width="12"/>
+    <path d="M284.37 122.05 A34 34 0 0 1 329.48 159.90" stroke-width="9"/>
+    <path d="M276.85 101.38 A56 56 0 0 1 351.15 163.72" stroke-width="9"/>
+  </g>
+  <circle cx="277" cy="180" r="9" fill="#FFFFFF"/>
+  <text x="256" y="378" text-anchor="middle" fill="#FFFFFF"
+        font-family="Segoe UI, Inter, Helvetica Neue, Arial, sans-serif"
+        font-size="72" letter-spacing="-1.5">baton<tspan font-weight="700">AI</tspan></text>
+</svg>

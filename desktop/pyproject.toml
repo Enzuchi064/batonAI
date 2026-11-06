@@ -1,0 +1,22 @@
+[project]
+name = "baton-desktop"
+version = "0.1.0"
+description = "Centro de control de escritorio de batonAI."
+requires-python = ">=3.11"
+dependencies = [
+    "pywebview>=6.2",
+    "httpx>=0.27",
+]
+
+[project.scripts]
+baton-desktop = "baton_desktop.__main__:main"
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["baton_desktop*"]
+
+[tool.setuptools.package-data]
+baton_desktop = ["ui/*"]

@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>batonAI · simulador</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/static/style.css?v=41">
+</head>
+<body>
+
+  <div class="stage">
+    <div class="rig">
+      <div class="lid">
+        <div class="bezel">
+          <div class="device" id="device">
+            <header class="device-head">
+              <span class="brand-mini">baton<span>.</span></span>
+              <span class="head-note">panel de control</span>
+              <span id="head-clock" class="head-clock">--:--</span>
+            </header>
+
+            <section class="agents-panel" aria-label="Agentes conectados">
+              <main id="agents" class="grid" aria-label="Agentes conectados"></main>
+            </section>
+
+            <aside class="rail limits-rail" aria-label="Límites y agentes">
+              <section class="rail-half limits-half">
+                <div class="rail-head">
+                  <h1>Límites</h1>
+                  <span id="limits-mode" class="rail-mode">restante</span>
+                </div>
+                <div id="device-limits" class="device-limits"></div>
+              </section>
+
+              <section class="rail-half agents-half">
+                <div class="rail-head">
+                  <h1>Agentes</h1>
+                  <span class="rail-count"><b id="agent-total">0</b> <span id="agent-total-word">agentes</span></span>
+                </div>
+                <div class="agent-states">
+                  <div class="agent-state" data-count="working"><b id="count-working">0</b><span>trabajando</span></div>
+                  <div class="agent-state" data-count="waiting"><b id="count-waiting">0</b><span>esperando</span></div>
+                  <div class="agent-state" data-count="idle"><b id="count-idle">0</b><span>en espera</span></div>
+                  <div class="agent-state" data-count="error"><b id="count-error">0</b><span>error</span></div>
+                </div>
+                <div class="mix state-mix" aria-hidden="true">
+                  <span id="mix-waiting"></span>
+                  <span id="mix-working"></span>
+                  <span id="mix-idle"></span>
+                  <span id="mix-error"></span>
+                </div>
+                <div class="rail-stats">
+                  <span><b id="total-cost">$0,00</b> coste</span>
+                  <span><b id="total-tokens">0</b> tok</span>
+                </div>
+                <div class="rail-foot">
+                  <span class="pill"><span class="link" id="link" data-state="off">sin conexión</span></span>
+                </div>
+              </section>
+            </aside>
+
+            <section id="detail" class="detail" aria-label="Conversación del agente" hidden>
+              <div class="detail-head">
+                <span id="detail-icon" class="icon plain">?</span>
+                <div class="detail-id">
+                  <h2 id="detail-name"></h2>
+                  <p id="detail-model"></p>
+                </div>
+                <span id="detail-state" class="detail-state"></span>
+                <button id="detail-close" class="mini detail-close" type="button" aria-label="Volver">×</button>
+              </div>
+              <p id="detail-task" class="detail-task"></p>
+              <div id="conversation" class="conversation" role="log" aria-live="polite"></div>
+              <div id="preview" class="preview" hidden>
+                <span class="preview-label">transcripción simulada</span>
+                <p id="preview-text"></p>
+                <div class="preview-actions">
+                  <button id="preview-cancel" class="mini" type="button">Cancelar B</button>
+                  <button id="preview-send" class="mini" type="button">Enviar A</button>
+                </div>
+              </div>
+              <div class="composer">
+                <button id="ptt" class="ptt-btn" type="button" aria-label="Mantener para dictar">PTT</button>
+                <span id="composer-hint" class="composer-hint">Mantén PTT para dictar</span>
+              </div>
+            </section>
+
+            <section id="tray" class="tray" role="dialog" aria-labelledby="tray-title" hidden>
+              <div class="sheet-grip" aria-hidden="true"></div>
+              <div class="tray-rail">
+                <span id="tray-agent" class="tray-agent"></span>
+                <span id="tray-queue" class="tray-queue"></span>
+                <span id="tray-countdown" class="countdown"></span>
+              </div>
+
+              <div class="tray-main">
+                <div id="tray-radar" class="radar" aria-hidden="true">
+                  <span class="radar-sweep"></span>
+                  <div class="radar-core">
+                    <span id="tray-risk" class="risk"></span>
+                    <small id="tray-level"></small>
+                  </div>
+                </div>
+                <div class="tray-info">
+                  <h2 id="tray-title"></h2>
+                  <pre id="tray-command"></pre>
+                  <p id="tray-cwd" class="tray-cwd"></p>
+                </div>
+              </div>
+
+              <ul id="tray-reasons" class="tray-reasons"></ul>
+
+              <div class="tray-options">
+                <button id="opt-allow" class="option is-focused" type="button" data-option="allow">Permitir</button>
+                <button id="opt-deny" class="option" type="button" data-option="deny">Denegar</button>
+              </div>
+              <div class="tray-actions">
+                <button id="back" class="btn" type="button">Volver <kbd>B</kbd></button>
+                <button id="confirm" class="btn primary" type="button">Confirmar <kbd>A</kbd></button>
+              </div>
+              <div class="hold-track" aria-hidden="true"><div id="hold-fill"></div></div>
+              <p id="tray-hint" class="tray-hint"></p>
+            </section>
+
+            <section id="audit" class="audit" aria-label="Auditoría" hidden>
+              <div class="audit-head">
+                <h2>Auditoría</h2>
+                <button id="audit-close" class="mini" type="button">cerrar</button>
+              </div>
+              <div id="audit-body" class="audit-body"></div>
+            </section>
+
+            <div id="pairing" class="pairing" hidden>
+              <div class="pairing-card">
+                <div class="pairing-head">
+                  <h2>Emparejar baton</h2>
+                  <span id="pairing-state" class="pairing-state">esperando</span>
+                </div>
+                <div id="pairing-qr" class="pairing-qr"></div>
+                <p class="pairing-id"><b id="pairing-device">BATON-XXXXXXXX</b></p>
+                <p id="pairing-hint">Escanea el QR con Google Authenticator y empareja desde la app.</p>
+                <div id="pairing-confirm" class="pairing-confirm" hidden>
+                  <p>¿Emparejar con <b id="pairing-pc">PC</b>?</p>
+                  <p class="pairing-sas">SAS <b id="pairing-sas">0000</b></p>
+                  <p><kbd>A</kbd> aceptar · <kbd>B</kbd> cancelar</p>
+                </div>
+              </div>
+            </div>
+
+            <div id="rec" class="rec" hidden><span class="rec-dot"></span>REC <b id="rec-time">0.0 s</b></div>
+            <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+
+            <section id="rest" class="rest" hidden aria-label="Modo reposo">
+              <div id="rest-sleep" class="rest-sleep">
+                <div id="rest-clock" class="rest-clock">--:--</div>
+                <div id="rest-date" class="rest-date"></div>
+                <div id="rest-state" class="rest-state">sin agentes</div>
+                <div id="rest-pending" class="rest-pending" hidden></div>
+                <div class="rest-mode">modo reposo</div>
+                <div class="rest-hint">toca o gira el encoder para volver</div>
+                <span class="rest-dot" aria-hidden="true"></span>
+              </div>
+
+              <div id="rest-summary" class="rest-summary" hidden>
+                <div class="summary-head">
+                  <h2>Mientras no estabas</h2>
+                  <span id="summary-away" class="summary-away"></span>
+                </div>
+                <div class="summary-numbers">
+                  <div><b id="summary-done">0</b><span>terminaron</span></div>
+                  <div><b id="summary-waiting">0</b><span>esperan</span></div>
+                  <div><b id="summary-errors">0</b><span>fallaron</span></div>
+                </div>
+                <ul id="summary-events" class="summary-events"></ul>
+                <p id="summary-empty" class="summary-empty" hidden>Todo tranquilo. Nada necesita tu atención.</p>
+                <div id="summary-extra" class="summary-extra"></div>
+                <div id="summary-pending" class="summary-pending" hidden></div>
+                <div class="summary-foot">
+                  <span>Pulsa A o toca para volver</span>
+                  <span class="summary-progress"><span id="summary-progress"></span></span>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+
+      <div class="hinge"></div>
+
+      <div class="base">
+        <span class="led" id="led" data-state="off" title="Estado del gateway"></span>
+
+        <div class="controls">
+          <button class="pad pad-b" id="pad-b" type="button" aria-label="Botón B: denegar o volver">B</button>
+          <button class="pad pad-a" id="pad-a" type="button" aria-label="Botón A: permitir o abrir detalle">A</button>
+          <button class="pad pad-ptt" id="pad-ptt" type="button" aria-label="PTT: mantener para hablar">PTT</button>
+
+          <div class="encoder" id="encoder" tabindex="0" role="slider"
+               aria-label="Encoder: girar para navegar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
+            <div class="roller" id="roller"></div>
+            <span class="rotate" aria-hidden="true">↻</span>
+          </div>
+        </div>
+
+        <span class="engraving">baton.</span>
+      </div>
+    </div>
+
+    <div class="tools">
+      <span class="wordmark">baton<span class="dot">.</span></span>
+      <span class="tool">dispositivo <b id="device-short">——</b></span>
+      <span class="tool-gap"></span>
+      <button class="mini" id="force-normal" type="button">simular permiso</button>
+      <button class="mini" id="force-high" type="button">riesgo alto</button>
+      <button class="mini" id="audit-toggle" type="button" aria-expanded="false">auditoría</button>
+      <button class="mini" id="rest-now" type="button" aria-pressed="false">modo reposo</button>
+    </div>
+  </div>
+
+  <script src="/static/app.js?v=41" defer></script>
+</body>
+</html>

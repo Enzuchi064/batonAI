@@ -1,0 +1,30 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Datos locales y secretos
+var/
+gateway/var/
+desktop/var/
+*.db
+*.db-shm
+*.db-wal
+virtual_device.json
+virtual-qr.png
+*.log
+
+# Artefactos de empaquetado
+release/
+build/
+dist/
+*.spec
+
+# Notas internas de aprendizaje
+.vibe-wise/
+
+# Sistema
+.DS_Store
+Thumbs.db

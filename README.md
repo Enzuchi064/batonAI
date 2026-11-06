@@ -6,9 +6,11 @@ en loopback y un panel de 480×320 que también se puede probar en el navegador.
 El panel muestra el estado de los agentes y, en la columna lateral, los límites
 reales de las IAs instaladas: **OpenCode**, **Codex** y **Claude Code**.
 
+**[Descargar el instalador](https://github.com/Enzuchi064/batonAI/releases/latest)**
+
 ## Descargar e instalar
 
-1. Entra en **Releases** de este repositorio.
+1. Entra en **[Releases](https://github.com/Enzuchi064/batonAI/releases/latest)**.
 2. Descarga `batonAI-control-setup-0.1.0.exe`.
 3. Ejecútalo. Se instala en tu carpeta de usuario, sin pedir administrador.
 4. Abre **batonAI control** desde el menú Inicio.

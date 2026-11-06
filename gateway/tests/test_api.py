@@ -218,6 +218,25 @@ def test_rest_config_persists(tmp_path):
         assert second.get("/api/config/rest").json()["rest_after_s"] == 420
 
 
+def test_remote_control_requires_token(app):
+    token = app.state.services.remote_token
+
+    with TestClient(app, client=("10.0.0.7", 1234)) as remote:
+        assert remote.get("/api/state").status_code == 403
+        response = remote.get(
+            "/api/state",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 200
+        assert "agents" in response.json()
+        assert remote.get("/api/config/remote").status_code == 403
+
+    with TestClient(app, client=("127.0.0.1", 1234)) as local:
+        body = local.get("/api/config/remote").json()
+        assert body["ok"] is True
+        assert body["token"] == token
+
+
 def test_provider_budgets_endpoint(client):
     assert client.get("/api/config/budgets").json()["budgets"] == {}
 

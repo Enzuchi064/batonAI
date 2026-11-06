@@ -11,8 +11,9 @@ reales de las IAs instaladas: **OpenCode**, **Codex** y **Claude Code**.
 ## Descargar e instalar
 
 1. Entra en **[Releases](https://github.com/Enzuchi064/batonAI/releases/latest)**.
-2. Descarga `batonAI-control-setup-0.1.0.exe`.
-3. Ejecútalo. Se instala en tu carpeta de usuario, sin pedir administrador.
+2. Descarga `batonAI-control-setup-0.2.0.exe`.
+3. Ejecútalo. Se instala en `Program Files` y pide administrador una vez para
+   permitir el gateway en la red privada.
 4. Abre **batonAI control** desde el menú Inicio.
 
 La app arranca el gateway automáticamente si no está corriendo. El panel queda
@@ -28,6 +29,21 @@ botón **Abrir panel**.
 > El instalador no está firmado digitalmente. Windows puede mostrar SmartScreen:
 > pulsa **Más información → Ejecutar de todas formas**.
 
+## Control desde otro PC
+
+El gateway del PC donde está el dispositivo puede usarse desde la app instalada
+en otro PC de la misma red.
+
+1. En el PC del dispositivo: **Ajustes → Conexión → Acceso desde otro PC**.
+2. Copia la **URL** y el **token**.
+3. En el otro PC: **Ajustes → Conexión**, pega la URL y el token, y pulsa
+   **Conectar**.
+4. Ese PC ya ve el mismo gateway, los mismos agentes y el mismo dispositivo.
+
+El instalador crea la regla de firewall para `batonAI-gateway.exe` en redes
+privadas; la red debe estar configurada como **Privada** en Windows. Las
+peticiones remotas siempre requieren el token; no expongas el puerto a Internet.
+
 ## Qué incluye
 
 - **Agentes:** sesiones de OpenCode, Claude Code, Codex, Gemini, Antigravity,
@@ -37,6 +53,8 @@ botón **Abrir panel**.
 - **Ojos por ventana:** eliges qué límites aparecen en el dispositivo.
 - **Modo Restante / Gastado:** el dispositivo puede mostrar lo que queda o lo
   consumido.
+- **Control desde otro PC:** URL + token de control para que la app de otro PC
+  use el gateway y el dispositivo del PC principal.
 - **Panel 480×320:** cabecera, rejilla de agentes y columna lateral dividida
   entre límites y estados de agentes.
 - **Radar de peligro:** nivel 1/4–4/4, motivos y confirmación mantenida en el
@@ -102,7 +120,7 @@ cd ..
 & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "packaging\batonAI.iss"
 ```
 
-El resultado queda en `release\batonAI-control-setup-0.1.0.exe`.
+El resultado queda en `release\batonAI-control-setup-0.2.0.exe`.
 
 ## Datos y privacidad
 

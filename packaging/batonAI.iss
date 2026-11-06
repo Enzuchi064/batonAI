@@ -1,5 +1,5 @@
 #define MyAppName "batonAI"
-#define MyAppVersion "0.1.0"
+#define MyAppVersion "0.2.0"
 #define MyAppPublisher "batonAI"
 #define MyAppExeName "batonAI-control.exe"
 
@@ -8,10 +8,10 @@ AppId={{84F3BA32-A780-4ECC-A332-1EA48D686DDD}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
-DefaultDirName={localappdata}\Programs\batonAI
+DefaultDirName={autopf}\batonAI
 DefaultGroupName=batonAI
 DisableProgramGroupPage=yes
-PrivilegesRequired=lowest
+PrivilegesRequired=admin
 OutputDir=..\release
 OutputBaseFilename=batonAI-control-setup-{#MyAppVersion}
 SetupIconFile=..\desktop\baton_desktop\ui\favicon.ico
@@ -36,8 +36,12 @@ Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 [Icons]
 Name: "{group}\batonAI control"; Filename: "{app}\control\{#MyAppExeName}"; WorkingDir: "{app}\control"
 Name: "{group}\batonAI gateway"; Filename: "{app}\gateway\batonAI-gateway.exe"; WorkingDir: "{app}\gateway"
-Name: "{userstartup}\batonAI gateway"; Filename: "{app}\gateway\batonAI-gateway.exe"; WorkingDir: "{app}\gateway"; Tasks: autostart
+Name: "{commonstartup}\batonAI gateway"; Filename: "{app}\gateway\batonAI-gateway.exe"; WorkingDir: "{app}\gateway"; Tasks: autostart
 Name: "{autodesktop}\batonAI control"; Filename: "{app}\control\{#MyAppExeName}"; WorkingDir: "{app}\control"; Tasks: desktopicon
 
 [Run]
+Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command ""New-NetFirewallRule -DisplayName 'batonAI gateway' -Direction Inbound -Program '{app}\gateway\batonAI-gateway.exe' -Action Allow -Profile Private -ErrorAction SilentlyContinue"""; Flags: runhidden; StatusMsg: "Permitiendo el gateway en la red privada..."
 Filename: "{app}\control\{#MyAppExeName}"; Description: "Abrir batonAI control"; Flags: nowait postinstall skipifsilent
+
+[UninstallRun]
+Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command ""Remove-NetFirewallRule -DisplayName 'batonAI gateway' -ErrorAction SilentlyContinue"""; Flags: runhidden; RunOnceId: "RemoveBatonFirewall"

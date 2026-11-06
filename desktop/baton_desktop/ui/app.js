@@ -143,6 +143,7 @@ const state = {
   virtualPairId: null,
   virtualPoll: null,
   restDirty: false,
+  connection: { url: "", token: "", remote: null },
   limitsView: "remaining",
   limits: {
     ok: false,
@@ -330,6 +331,28 @@ function mockApi() {
     },
     async set_rest_config(seconds) {
       return { ok: true, rest_after_s: Number(seconds) || 0 };
+    },
+    async connection_config() {
+      return {
+        ok: true,
+        gateway_url: "http://127.0.0.1:8770",
+        token: "",
+      };
+    },
+    async set_connection_config(gateway_url, token) {
+      return { ok: true, gateway_url, token };
+    },
+    async remote_config() {
+      return {
+        ok: true,
+        token: "demo-remote-token",
+        url: "http://192.168.0.26:8770",
+        urls: [
+          { interface: "Wi-Fi", url: "http://192.168.0.26:8770" },
+          { interface: "Ethernet 2", url: "http://192.168.56.1:8770" },
+        ],
+        lan: true,
+      };
     },
     async limits() {
       const now = Math.floor(Date.now() / 1000);
@@ -576,6 +599,9 @@ async function boot() {
   $("clear-pins").addEventListener("click", clearAllPins);
   $("drawer-close").addEventListener("click", closeDrawer);
   $("drawer-backdrop").addEventListener("click", closeDrawer);
+  $("connection-save").addEventListener("click", saveConnection);
+  $("connection-local").addEventListener("click", useLocalConnection);
+  $("remote-copy").addEventListener("click", copyRemoteConnection);
   $("rest-save").addEventListener("click", saveRestConfig);
   $("rest-minutes").addEventListener("input", () => {
     state.restDirty = true;
@@ -589,6 +615,7 @@ async function boot() {
   for (const tab of document.querySelectorAll(".tab[data-view]")) {
     tab.addEventListener("click", () => setView(tab.dataset.view));
   }
+  await loadConnection();
   await refresh();
   if (!state.preview) {
     // La detección vive en el gateway: refrescar en silencio hace que las
@@ -737,6 +764,11 @@ function setGateway(status) {
     node.dataset.state = "wait";
     text.textContent = "vista previa";
     node.title = "Datos de ejemplo (sin pywebview)";
+    const connection = $("connection-state");
+    if (connection) {
+      connection.textContent = "vista previa";
+      connection.dataset.state = "wait";
+    }
     return;
   }
 
@@ -749,6 +781,22 @@ function setGateway(status) {
     text.textContent = "gateway sin conexión";
     node.title = (status && status.error) || "No se pudo conectar";
   }
+
+  const connection = $("connection-state");
+  if (connection) {
+    if (status && status.ok) {
+      const local = isLocalGatewayUrl(status.gateway || state.connection.url);
+      connection.textContent = local ? "local" : "remoto";
+      connection.dataset.state = local ? "on" : "wait";
+    } else {
+      connection.textContent = "sin conexión";
+      connection.dataset.state = "off";
+    }
+  }
+}
+
+function isLocalGatewayUrl(url) {
+  return !url || /127\.0\.0\.1|localhost/.test(String(url));
 }
 
 /* -- hardware ---------------------------------------------------------- */
@@ -1149,6 +1197,103 @@ function renderAudit() {
 }
 
 /* -- ajustes ----------------------------------------------------------- */
+
+async function loadConnection() {
+  if (!state.api) return;
+  const config = await state.api.connection_config();
+  if (config && config.ok) {
+    state.connection.url = config.gateway_url || "";
+    state.connection.token = config.token || "";
+    $("connection-url").value = state.connection.url;
+    $("connection-token").value = state.connection.token;
+  }
+  const remote = state.api.remote_config
+    ? await state.api.remote_config()
+    : null;
+  state.connection.remote = remote;
+  renderConnection();
+}
+
+function renderConnection() {
+  const remote = state.connection.remote;
+  const box = $("remote-access");
+  const note = $("connection-note");
+  if (!box) return;
+
+  const show = Boolean(remote && remote.ok && remote.lan && remote.token);
+  box.hidden = !show;
+  if (show) {
+    const urls = Array.isArray(remote.urls) ? remote.urls : [];
+    $("remote-url").textContent =
+      remote.url || (urls[0] && urls[0].url) || "—";
+    $("remote-token").textContent = remote.token;
+    const alternatives = urls.filter((item) => item.url !== remote.url);
+    $("remote-alt").textContent = alternatives.length
+      ? "Otras interfaces: " +
+        alternatives
+          .map((item) => `${item.interface}: ${item.url}`)
+          .join(" · ")
+      : "";
+  }
+
+  if (note && remote && remote.ok && !remote.lan) {
+    note.textContent =
+      "Este gateway escucha solo en local. Para acceso remoto, arráncalo con BATON_HOST=0.0.0.0.";
+    note.dataset.state = "error";
+  } else if (note && (!remote || !remote.ok)) {
+    note.textContent = "";
+    note.dataset.state = "";
+  }
+}
+
+async function saveConnection() {
+  const note = $("connection-note");
+  const url = $("connection-url").value.trim();
+  const token = $("connection-token").value.trim();
+  try {
+    const result = await state.api.set_connection_config(url, token);
+    if (!result || !result.ok) {
+      note.textContent = "No se pudo guardar la conexión.";
+      note.dataset.state = "error";
+      return;
+    }
+    state.connection.url = result.gateway_url;
+    state.connection.token = result.token;
+    $("connection-url").value = result.gateway_url;
+    $("connection-token").value = result.token;
+    note.textContent = "Conexión guardada. Reconectando…";
+    note.dataset.state = "ok";
+    await refresh();
+    await loadConnection();
+    note.textContent = "Conexión guardada.";
+    note.dataset.state = "ok";
+  } catch (error) {
+    note.textContent = "Error al guardar: " + String(error);
+    note.dataset.state = "error";
+  }
+}
+
+async function useLocalConnection() {
+  $("connection-url").value = "http://127.0.0.1:8770";
+  $("connection-token").value = "";
+  await saveConnection();
+}
+
+async function copyRemoteConnection() {
+  const remote = state.connection.remote;
+  if (!remote || !remote.ok) return;
+  const text = `Gateway: ${remote.url || ""}\nToken: ${remote.token || ""}`;
+  try {
+    await navigator.clipboard.writeText(text);
+    const note = $("connection-note");
+    note.textContent = "URL y token copiados.";
+    note.dataset.state = "ok";
+  } catch (error) {
+    const note = $("connection-note");
+    note.textContent = "No se pudo copiar: " + String(error);
+    note.dataset.state = "error";
+  }
+}
 
 async function loadSettings(status, silent = false) {
   const [info, limits] = await Promise.all([

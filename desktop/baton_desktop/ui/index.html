@@ -156,6 +156,60 @@
       </section>
 
       <section id="view-settings" class="view" data-view="settings" hidden>
+        <div class="card connection-card">
+          <div class="connection-head">
+            <div>
+              <span class="card-kicker">Conexión</span>
+              <p class="connection-title">Gateway local o remoto</p>
+            </div>
+            <span id="connection-state" class="badge" data-state="off">—</span>
+          </div>
+          <p class="muted">
+            Si el dispositivo está en otro PC, pega aquí su URL y su token de
+            control. Para volver a este PC, pulsa «Usar este PC».
+          </p>
+          <div class="connection-grid">
+            <label class="connection-field">
+              <span>URL</span>
+              <input
+                id="connection-url"
+                class="connection-input"
+                type="text"
+                placeholder="http://192.168.0.26:8770"
+                spellcheck="false"
+              >
+            </label>
+            <label class="connection-field">
+              <span>Token</span>
+              <input
+                id="connection-token"
+                class="connection-input"
+                type="password"
+                placeholder="token de control"
+                spellcheck="false"
+              >
+            </label>
+            <div class="connection-actions">
+              <button id="connection-save" class="button" type="button">Conectar</button>
+              <button id="connection-local" class="mini" type="button">Usar este PC</button>
+            </div>
+          </div>
+          <p id="connection-note" class="muted"></p>
+          <div id="remote-access" class="remote-access" hidden>
+            <span class="card-kicker">Acceso desde otro PC</span>
+            <div class="remote-line">
+              <span>URL</span>
+              <code id="remote-url">—</code>
+              <button id="remote-copy" class="mini" type="button">Copiar URL + token</button>
+            </div>
+            <div class="remote-line">
+              <span>Token</span>
+              <code id="remote-token" class="mono">—</code>
+            </div>
+            <p id="remote-alt" class="muted"></p>
+            <p class="muted">Pega estos datos en la app del otro PC.</p>
+          </div>
+        </div>
         <div class="card limits-card">
           <div class="limits-head">
             <div class="limits-intro">

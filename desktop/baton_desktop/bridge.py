@@ -10,6 +10,7 @@ este puente ya no mantiene una copia local.
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -21,19 +22,68 @@ from urllib.parse import quote
 import httpx
 
 DEFAULT_GATEWAY = "http://127.0.0.1:8770"
+_LOCAL_APP_DATA = (
+    Path(os.environ["LOCALAPPDATA"])
+    if os.environ.get("LOCALAPPDATA")
+    else Path.home()
+)
+CONTROL_CONFIG = _LOCAL_APP_DATA / "batonAI" / "control.json"
+
+
+def _load_control_config() -> dict[str, Any]:
+    try:
+        data = json.loads(CONTROL_CONFIG.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _save_control_config(gateway_url: str, gateway_token: str) -> None:
+    CONTROL_CONFIG.parent.mkdir(parents=True, exist_ok=True)
+    CONTROL_CONFIG.write_text(
+        json.dumps(
+            {
+                "gateway_url": gateway_url,
+                "gateway_token": gateway_token,
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+
+def resolve_gateway(
+    gateway_url: str | None = None,
+) -> tuple[str, str]:
+    config = _load_control_config()
+    url = (
+        gateway_url
+        or os.environ.get("BATON_GATEWAY_URL")
+        or config.get("gateway_url")
+        or DEFAULT_GATEWAY
+    )
+    token = (
+        os.environ.get("BATON_GATEWAY_TOKEN")
+        or config.get("gateway_token")
+        or ""
+    )
+    return str(url).rstrip("/"), str(token)
 
 
 class Bridge:
     def __init__(self, gateway_url: str | None = None) -> None:
-        env_url = os.environ.get("BATON_GATEWAY_URL")
-        self.gateway_url = (gateway_url or env_url or DEFAULT_GATEWAY).rstrip("/")
+        self.gateway_url, self.gateway_token = resolve_gateway(gateway_url)
 
     # -- helpers ----------------------------------------------------------
 
     def _request(self, method: str, path: str, body: dict[str, Any] | None = None) -> dict[str, Any]:
+        headers = {}
+        if self.gateway_token:
+            headers["Authorization"] = f"Bearer {self.gateway_token}"
         try:
             with httpx.Client(base_url=self.gateway_url, timeout=2.5) as client:
-                response = client.request(method, path, json=body)
+                response = client.request(method, path, headers=headers, json=body)
                 if response.status_code == 404:
                     return {"ok": False, "error": "agent_not_found"}
                 if 400 <= response.status_code < 500:
@@ -221,6 +271,37 @@ class Bridge:
                 "error": result["error"],
             }
         return {"ok": True, "gateway": self.gateway_url, **result["data"]}
+
+    def connection_config(self) -> dict[str, Any]:
+        return {
+            "ok": True,
+            "gateway_url": self.gateway_url,
+            "token": self.gateway_token,
+        }
+
+    def set_connection_config(
+        self, gateway_url: str, token: str = ""
+    ) -> dict[str, Any]:
+        url = str(gateway_url or "").strip()
+        if not url:
+            return {"ok": False, "error": "empty_url"}
+        if not url.startswith(("http://", "https://")):
+            url = "http://" + url
+        url = url.rstrip("/")
+        clean_token = str(token or "").strip()
+        try:
+            _save_control_config(url, clean_token)
+        except OSError as exc:
+            return {"ok": False, "error": type(exc).__name__}
+        self.gateway_url = url
+        self.gateway_token = clean_token
+        return {"ok": True, "gateway_url": url, "token": clean_token}
+
+    def remote_config(self) -> dict[str, Any]:
+        result = self._request("GET", "/api/config/remote")
+        if not result["ok"]:
+            return {"ok": False, "error": result["error"]}
+        return {"ok": True, **result["data"]}
 
     def pairing_code(self) -> dict[str, Any]:
         result = self._request("GET", "/api/dev/pairing")

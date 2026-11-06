@@ -6,6 +6,10 @@ import os
 import sys
 from pathlib import Path
 
+# El ejecutable instalado escucha en LAN para el modo remoto. Las peticiones
+# remotas siguen requiriendo el token de control; el loopback no.
+os.environ.setdefault("BATON_HOST", "0.0.0.0")
+
 # En un ejecutable --windowed no hay stdout/stderr. Se redirigen a un log
 # persistente para que el gateway pueda arrancar y dejar rastro de errores.
 if sys.stdout is None or sys.stderr is None:

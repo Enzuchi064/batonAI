@@ -100,10 +100,27 @@ class AgentLimitsUpdate(BaseModel):
     monthly: int = Field(ge=0, le=10**12)
 
 
-def _require_local(request: Request) -> None:
+def _require_loopback(request: Request) -> None:
     host = request.client.host if request.client else ""
     if host not in LOCAL_HOSTS:
         raise HTTPException(status_code=403, detail="admin_only")
+
+
+def _require_control(request: Request) -> None:
+    """Loopback siempre; LAN solo con el token de control."""
+    host = request.client.host if request.client else ""
+    if host in LOCAL_HOSTS:
+        return
+    services = getattr(request.app.state, "services", None)
+    token = getattr(services, "remote_token", "") if services else ""
+    header = request.headers.get("authorization", "")
+    if (
+        token
+        and header.startswith("Bearer ")
+        and secrets.compare_digest(header[7:], token)
+    ):
+        return
+    raise HTTPException(status_code=403, detail="control_token_required")
 
 
 def create_app(
@@ -162,7 +179,7 @@ def create_app(
 
     # -- administración local ---------------------------------------------
 
-    @app.get("/api/dev/bootstrap", dependencies=[Depends(_require_local)])
+    @app.get("/api/dev/bootstrap", dependencies=[Depends(_require_loopback)])
     async def bootstrap(device_id: str | None = None) -> dict[str, Any]:
         if not settings.dev_mode:
             raise HTTPException(status_code=404, detail="dev_mode_disabled")
@@ -173,17 +190,17 @@ def create_app(
             "state": services.snapshot(),
         }
 
-    @app.get("/api/dev/pairing", dependencies=[Depends(_require_local)])
+    @app.get("/api/dev/pairing", dependencies=[Depends(_require_loopback)])
     async def pairing_code() -> dict[str, str]:
         if not settings.dev_mode:
             raise HTTPException(status_code=404, detail="dev_mode_disabled")
         return {"code": services.pairing.code}
 
-    @app.get("/api/state", dependencies=[Depends(_require_local)])
+    @app.get("/api/state", dependencies=[Depends(_require_control)])
     async def state() -> dict[str, Any]:
         return services.snapshot()
 
-    @app.get("/api/info", dependencies=[Depends(_require_local)])
+    @app.get("/api/info", dependencies=[Depends(_require_control)])
     async def info() -> dict[str, Any]:
         sources: list[dict[str, Any]] = []
         if services.discovery is not None:
@@ -229,7 +246,46 @@ def create_app(
             "sources": sources,
         }
 
-    @app.post("/api/agents/{agent_id}/interrupt", dependencies=[Depends(_require_local)])
+    @app.get("/api/config/remote", dependencies=[Depends(_require_loopback)])
+    async def remote_control_config() -> dict[str, Any]:
+        urls: list[dict[str, str]] = []
+        try:
+            import psutil
+
+            for name, addresses in psutil.net_if_addrs().items():
+                for address in addresses:
+                    if address.family != socket.AF_INET:
+                        continue
+                    if address.address.startswith(("127.", "169.254.")):
+                        continue
+                    url = f"http://{address.address}:{settings.port}"
+                    if not any(item["url"] == url for item in urls):
+                        urls.append({"interface": name, "url": url})
+        except Exception:
+            pass
+
+        primary = None
+        try:
+            probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            probe.connect(("8.8.8.8", 80))
+            primary = f"http://{probe.getsockname()[0]}:{settings.port}"
+            probe.close()
+        except OSError:
+            primary = None
+        if primary and not any(item["url"] == primary for item in urls):
+            urls.insert(0, {"interface": "principal", "url": primary})
+
+        return {
+            "ok": True,
+            "token": services.remote_token,
+            "url": primary,
+            "urls": urls,
+            "lan": settings.host in {"0.0.0.0", "::"},
+            "host": settings.host,
+            "port": settings.port,
+        }
+
+    @app.post("/api/agents/{agent_id}/interrupt", dependencies=[Depends(_require_control)])
     async def interrupt_agent(agent_id: str) -> dict[str, Any]:
         if services.store.maybe_get(agent_id) is None:
             raise HTTPException(status_code=404, detail="agent_not_found")
@@ -238,7 +294,7 @@ def create_app(
             raise HTTPException(status_code=409, detail="agent_unsupported")
         return {"ok": True, "agent_id": agent_id}
 
-    @app.post("/api/agents/{agent_id}/message", dependencies=[Depends(_require_local)])
+    @app.post("/api/agents/{agent_id}/message", dependencies=[Depends(_require_control)])
     async def message_agent(agent_id: str, body: AgentMessageRequest) -> dict[str, Any]:
         if services.store.maybe_get(agent_id) is None:
             raise HTTPException(status_code=404, detail="agent_not_found")
@@ -250,26 +306,26 @@ def create_app(
             raise HTTPException(status_code=409, detail="agent_unsupported")
         return {"ok": True, "agent_id": agent_id, "chars": len(text)}
 
-    @app.get("/api/config/visibility", dependencies=[Depends(_require_local)])
+    @app.get("/api/config/visibility", dependencies=[Depends(_require_control)])
     async def get_visibility() -> dict[str, Any]:
         return {"hidden_agents": services.hidden_agents()}
 
-    @app.patch("/api/config/visibility/{agent_id}", dependencies=[Depends(_require_local)])
+    @app.patch("/api/config/visibility/{agent_id}", dependencies=[Depends(_require_control)])
     async def set_visibility(agent_id: str, body: VisibilityUpdate) -> dict[str, Any]:
         hidden_agents = await services.set_visibility(agent_id, body.hidden)
         if hidden_agents is None:
             raise HTTPException(status_code=404, detail="agent_not_found")
         return {"hidden_agents": hidden_agents}
 
-    @app.get("/api/config/pins", dependencies=[Depends(_require_local)])
+    @app.get("/api/config/pins", dependencies=[Depends(_require_control)])
     async def get_pins() -> dict[str, Any]:
         return {"pinned_agents": services.pinned_agents()}
 
-    @app.get("/api/config/rest", dependencies=[Depends(_require_local)])
+    @app.get("/api/config/rest", dependencies=[Depends(_require_control)])
     async def get_rest_config() -> dict[str, int]:
         return {"rest_after_s": settings.rest_after_s}
 
-    @app.patch("/api/config/rest", dependencies=[Depends(_require_local)])
+    @app.patch("/api/config/rest", dependencies=[Depends(_require_control)])
     async def set_rest_config(body: RestConfigUpdate) -> dict[str, int]:
         settings.rest_after_s = int(body.rest_after_s)
         services.audit.set_setting("rest_after_s", str(settings.rest_after_s))
@@ -279,11 +335,11 @@ def create_app(
         )
         return {"rest_after_s": settings.rest_after_s}
 
-    @app.get("/api/config/budgets", dependencies=[Depends(_require_local)])
+    @app.get("/api/config/budgets", dependencies=[Depends(_require_control)])
     async def get_budgets() -> dict[str, dict[str, int]]:
         return {"budgets": dict(services.provider_budgets)}
 
-    @app.patch("/api/config/budgets", dependencies=[Depends(_require_local)])
+    @app.patch("/api/config/budgets", dependencies=[Depends(_require_control)])
     async def set_budgets(body: ProviderBudgetsUpdate) -> dict[str, dict[str, int]]:
         clean: dict[str, int] = {}
         for key, value in body.budgets.items():
@@ -300,7 +356,7 @@ def create_app(
         )
         return {"budgets": clean}
 
-    @app.get("/api/config/limits", dependencies=[Depends(_require_local)])
+    @app.get("/api/config/limits", dependencies=[Depends(_require_control)])
     async def get_limits() -> dict[str, Any]:
         limits = services.audit.agent_limits()
         period = services.ticker_period
@@ -325,7 +381,7 @@ def create_app(
             )
         return {"period": period, "agents": agents}
 
-    @app.get("/api/limits", dependencies=[Depends(_require_local)])
+    @app.get("/api/limits", dependencies=[Depends(_require_control)])
     def limits() -> dict[str, Any]:
         if services.limits is None:
             return {
@@ -342,7 +398,7 @@ def create_app(
             view=services.limits_view,
         )
 
-    @app.get("/api/codex/limits", dependencies=[Depends(_require_local)])
+    @app.get("/api/codex/limits", dependencies=[Depends(_require_control)])
     def codex_limits() -> dict[str, Any]:
         if services.limits is None:
             return {
@@ -374,7 +430,7 @@ def create_app(
             }
         return {**provider, "period": services.ticker_period}
 
-    @app.patch("/api/config/limits", dependencies=[Depends(_require_local)])
+    @app.patch("/api/config/limits", dependencies=[Depends(_require_control)])
     async def set_limits_period(body: LimitsPeriodUpdate) -> dict[str, Any]:
         result: dict[str, Any] = {"period": services.ticker_period}
         if body.period is not None:
@@ -458,7 +514,7 @@ def create_app(
         return result
 
     @app.patch(
-        "/api/config/limits/{agent_id}", dependencies=[Depends(_require_local)]
+        "/api/config/limits/{agent_id}", dependencies=[Depends(_require_control)]
     )
     async def set_agent_limits(
         agent_id: str, body: AgentLimitsUpdate
@@ -484,7 +540,7 @@ def create_app(
             },
         }
 
-    @app.patch("/api/config/pins/{agent_id}", dependencies=[Depends(_require_local)])
+    @app.patch("/api/config/pins/{agent_id}", dependencies=[Depends(_require_control)])
     async def set_pin(agent_id: str, body: PinnedUpdate) -> dict[str, Any]:
         try:
             pinned_agents = await services.set_pinned(agent_id, body.pinned)
@@ -494,7 +550,7 @@ def create_app(
             raise HTTPException(status_code=404, detail="agent_not_found")
         return {"pinned_agents": pinned_agents}
 
-    @app.post("/api/dev/approval", dependencies=[Depends(_require_local)])
+    @app.post("/api/dev/approval", dependencies=[Depends(_require_loopback)])
     async def force_approval(body: ForceApprovalRequest) -> dict[str, Any]:
         if not settings.dev_mode:
             raise HTTPException(status_code=404, detail="dev_mode_disabled")
@@ -502,7 +558,7 @@ def create_app(
             raise HTTPException(status_code=409, detail="fake_agent_busy_or_disabled")
         return {"ok": True, "queued": body.risk}
 
-    @app.post("/api/dev/interrupt", dependencies=[Depends(_require_local)])
+    @app.post("/api/dev/interrupt", dependencies=[Depends(_require_loopback)])
     async def interrupt() -> dict[str, Any]:
         if not settings.dev_mode:
             raise HTTPException(status_code=404, detail="dev_mode_disabled")
@@ -516,11 +572,11 @@ def create_app(
             raise HTTPException(status_code=404, detail="dev_mode_disabled")
         return services.virtual_device
 
-    @app.get("/api/dev/virtual", dependencies=[Depends(_require_local)])
+    @app.get("/api/dev/virtual", dependencies=[Depends(_require_control)])
     async def virtual_info() -> dict[str, Any]:
         return _virtual().info(include_code=True)
 
-    @app.post("/api/dev/virtual/pair", dependencies=[Depends(_require_local)])
+    @app.post("/api/dev/virtual/pair", dependencies=[Depends(_require_control)])
     async def virtual_pair(body: VirtualPairRequest) -> dict[str, Any]:
         device = _virtual()
         try:
@@ -533,7 +589,7 @@ def create_app(
             await services.hub.disconnect(device.device_id, 4401, "replaced")
         return result
 
-    @app.post("/api/dev/virtual/confirm", dependencies=[Depends(_require_local)])
+    @app.post("/api/dev/virtual/confirm", dependencies=[Depends(_require_control)])
     async def virtual_confirm(body: VirtualConfirmRequest) -> dict[str, Any]:
         device = _virtual()
         try:
@@ -544,25 +600,25 @@ def create_app(
         await services.hub.disconnect(device.device_id, 4401, "paired")
         return result
 
-    @app.post("/api/dev/virtual/unpair", dependencies=[Depends(_require_local)])
+    @app.post("/api/dev/virtual/unpair", dependencies=[Depends(_require_control)])
     async def virtual_unpair() -> dict[str, Any]:
         device = _virtual()
         result = device.unpair()
         await services.hub.disconnect(device.device_id, 4401, "unpaired")
         return result
 
-    @app.post("/api/dev/virtual/cancel", dependencies=[Depends(_require_local)])
+    @app.post("/api/dev/virtual/cancel", dependencies=[Depends(_require_control)])
     async def virtual_cancel() -> dict[str, Any]:
         return _virtual().cancel()
 
-    @app.get("/api/dev/virtual/panel-token", dependencies=[Depends(_require_local)])
+    @app.get("/api/dev/virtual/panel-token", dependencies=[Depends(_require_loopback)])
     async def virtual_panel_token() -> dict[str, str]:
         try:
             return _virtual().panel_token()
         except VirtualPairingError as exc:
             raise HTTPException(status_code=409, detail=exc.code) from exc
 
-    @app.post("/api/dev/virtual/reset", dependencies=[Depends(_require_local)])
+    @app.post("/api/dev/virtual/reset", dependencies=[Depends(_require_control)])
     async def virtual_reset() -> dict[str, Any]:
         device = _virtual()
         previous_id = device.device_id
@@ -570,7 +626,7 @@ def create_app(
         await services.hub.disconnect(previous_id, 4401, "reset")
         return result
 
-    @app.get("/api/devices", dependencies=[Depends(_require_local)])
+    @app.get("/api/devices", dependencies=[Depends(_require_control)])
     async def devices() -> list[dict[str, Any]]:
         devices = services.audit.list_devices()
         connected = set(services.hub.device_ids)
@@ -585,11 +641,11 @@ def create_app(
                 device["virtual"] = True
         return devices
 
-    @app.post("/api/devices/{device_id}/revoke", dependencies=[Depends(_require_local)])
+    @app.post("/api/devices/{device_id}/revoke", dependencies=[Depends(_require_control)])
     async def revoke(device_id: str) -> dict[str, Any]:
         return {"ok": services.audit.revoke_device(device_id)}
 
-    @app.get("/api/audit", dependencies=[Depends(_require_local)])
+    @app.get("/api/audit", dependencies=[Depends(_require_control)])
     async def audit(limit: int = 50) -> dict[str, Any]:
         limit = max(1, min(limit, 500))
         return {

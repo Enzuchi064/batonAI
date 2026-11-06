@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import secrets
 import time
 from dataclasses import dataclass, field
 from typing import Any
@@ -98,6 +99,7 @@ class Services:
     ticker_windows: list[str] | None = None
     limits_view: str = "remaining"
     limits: LimitsService | None = None
+    remote_token: str = ""
     started_at: float = field(default_factory=time.monotonic)
 
     # -- construcción -----------------------------------------------------
@@ -111,6 +113,10 @@ class Services:
 
         audit = AuditLog(settings.db_path)
         usage = UsageTracker(audit)
+        remote_token = audit.get_setting("remote_token") or ""
+        if not remote_token:
+            remote_token = secrets.token_urlsafe(24)
+            audit.set_setting("remote_token", remote_token)
         ticker_period = audit.get_setting("ticker_period", "all") or "all"
         if ticker_period == "daily":
             ticker_period = "rolling"
@@ -261,6 +267,7 @@ class Services:
             ticker_windows=ticker_windows,
             limits_view=limits_view,
             limits=limits,
+            remote_token=remote_token,
         )
 
     async def start(self) -> None:

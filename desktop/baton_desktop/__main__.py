@@ -12,7 +12,7 @@ from pathlib import Path
 import httpx
 import webview
 
-from .bridge import DEFAULT_GATEWAY, Bridge
+from .bridge import Bridge, resolve_gateway
 
 UI_DIR = Path(__file__).resolve().parent / "ui"
 
@@ -71,11 +71,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args(argv)
 
-    gateway_url = (
-        args.gateway_url
-        or os.environ.get("BATON_GATEWAY_URL")
-        or DEFAULT_GATEWAY
-    )
+    gateway_url, _ = resolve_gateway(args.gateway_url)
     _ensure_gateway(gateway_url)
     bridge = Bridge(gateway_url)
     webview.create_window(

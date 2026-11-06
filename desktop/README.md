@@ -109,6 +109,18 @@ muestra en Ajustes con su estado, pero no ensucia la columna de límites. La
 sección de límites por agente del detalle ya no existe: la fuente de verdad son
 los planes reales de cada IA, no presupuestos manuales.
 
+## Control desde otro PC
+
+El gateway del PC del dispositivo escucha en la red privada y exige token para
+peticiones remotas. En **Ajustes → Conexión**:
+
+- el PC del dispositivo muestra la URL de LAN y el token en **Acceso desde otro
+  PC**;
+- el otro PC pega esa URL y token y pulsa **Conectar**.
+
+La app guarda la conexión en `%LOCALAPPDATA%\batonAI\control.json`. El botón
+**Usar este PC** vuelve al gateway local.
+
 Cuando un agente pide permiso, la hoja de aprobación muestra un **radar de
 peligro** con nivel `1/4`–`4/4`, color y motivos en lenguaje normal. Para riesgo
 alto hay que mantener **A** 1,5 s; para crítico, 2,5 s. La app solo lo muestra

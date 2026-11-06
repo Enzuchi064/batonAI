@@ -152,6 +152,19 @@ adaptador no admite la acción. El supervisor registra `agent_interrupted` y
 - El panel muestra la hora y un resumen al volver; las decisiones siguen siendo
   solo del dispositivo.
 
+### Control remoto
+
+- El ejecutable instalado escucha en `0.0.0.0:8770` para permitir el control
+  desde otro PC de la red privada.
+- Las peticiones desde loopback no necesitan token.
+- Las peticiones desde LAN requieren `Authorization: Bearer <token>`.
+- El token se genera la primera vez y se guarda en `settings.remote_token` de
+  SQLite.
+- `GET /api/config/remote` (solo loopback) devuelve token, URL principal e
+  interfaces disponibles.
+- El instalador crea la regla de firewall para `batonAI-gateway.exe` en el
+  perfil Privado.
+
 ### Límites reales de las IAs
 
 - `GET /api/limits` agrega todas las fuentes instaladas:
@@ -260,7 +273,7 @@ Atajos del panel: `A` permitir, `B` denegar, `←`/`→` cambiar de agente,
 .\.venv\Scripts\python.exe -m baton serve [--host H] [--port P] [--fake]
 .\.venv\Scripts\python.exe -m baton pair      # imprime un código y sale
 .\.venv\Scripts\baton.exe serve               # mismo CLI, instalado
-.\.venv\Scripts\python.exe -m pytest -q       # 134 pruebas
+.\.venv\Scripts\python.exe -m pytest -q       # 135 pruebas
 ```
 
 ## Estructura

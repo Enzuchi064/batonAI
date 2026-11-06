@@ -1,6 +1,6 @@
 [project]
 name = "baton-gateway"
-version = "0.3.0"
+version = "0.3.1"
 description = "Gateway local de batonAI: estado de agentes, aprobaciones y voz."
 requires-python = ">=3.11"
 dependencies = [

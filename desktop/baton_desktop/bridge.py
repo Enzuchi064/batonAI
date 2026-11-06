@@ -18,6 +18,7 @@ import subprocess
 import sys
 import time
 import webbrowser
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
@@ -120,6 +121,99 @@ def discover_gateways(timeout: float = 2.0) -> list[dict[str, Any]]:
         return list(found.values())
     finally:
         sock.close()
+
+
+def _local_hosts() -> list[str]:
+    hosts: set[str] = set()
+    primary = None
+    try:
+        probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        probe.connect(("8.8.8.8", 80))
+        primary = probe.getsockname()[0]
+        probe.close()
+    except OSError:
+        primary = None
+
+    if primary:
+        try:
+            network = ipaddress.IPv4Network(f"{primary}/24", strict=False)
+            for host in network.hosts():
+                value = str(host)
+                if value != primary:
+                    hosts.add(value)
+        except ValueError:
+            pass
+        return sorted(hosts)
+
+    try:
+        for interface_addresses in psutil.net_if_addrs().values():
+            for address in interface_addresses:
+                if address.family != socket.AF_INET:
+                    continue
+                if not address.netmask or address.address.startswith("127."):
+                    continue
+                try:
+                    network = ipaddress.IPv4Network(
+                        f"{address.address}/{address.netmask}", strict=False
+                    )
+                except ValueError:
+                    continue
+                if network.prefixlen < 24:
+                    network = ipaddress.IPv4Network(
+                        f"{address.address}/24", strict=False
+                    )
+                own = address.address
+                for host in network.hosts():
+                    value = str(host)
+                    if value != own:
+                        hosts.add(value)
+    except Exception:
+        pass
+    return sorted(hosts)
+
+
+def _probe_gateway(address: str) -> dict[str, Any] | None:
+    url = f"http://{address}:8770"
+    try:
+        response = httpx.get(
+            f"{url}/api/health",
+            timeout=0.35,
+            trust_env=False,
+        )
+        if response.status_code != 200:
+            return None
+        payload = response.json()
+    except (httpx.HTTPError, ValueError):
+        return None
+    if not isinstance(payload, dict) or not payload.get("hostname"):
+        return None
+    hostname = str(payload.get("hostname"))
+    return {
+        "url": url,
+        "urls": [url],
+        "hostname": hostname,
+        "device_id": "",
+        "version": str(payload.get("version") or ""),
+        "address": address,
+        "local": hostname == socket.gethostname(),
+    }
+
+
+def scan_gateways() -> list[dict[str, Any]]:
+    hosts = _local_hosts()
+    found: list[dict[str, Any]] = []
+    if not hosts:
+        return found
+    with ThreadPoolExecutor(max_workers=48) as pool:
+        futures = {pool.submit(_probe_gateway, host): host for host in hosts}
+        for future in as_completed(futures):
+            try:
+                result = future.result()
+            except Exception:
+                continue
+            if result is not None:
+                found.append(result)
+    return found
 
 
 def resolve_gateway(
@@ -377,6 +471,18 @@ class Bridge:
             gateways = discover_gateways()
         except OSError as exc:
             return {"ok": False, "error": type(exc).__name__}
+        # Si el broadcast no cruza la red, se prueba un escaneo TCP de la
+        # subred local. Es más lento, pero funciona con AP isolation.
+        if not any(not item.get("local") for item in gateways):
+            try:
+                for item in scan_gateways():
+                    if not any(
+                        existing["url"] == item["url"]
+                        for existing in gateways
+                    ):
+                        gateways.append(item)
+            except Exception:
+                pass
         return {"ok": True, "gateways": gateways}
 
     def pair_control(self, gateway_url: str, code: str) -> dict[str, Any]:

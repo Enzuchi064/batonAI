@@ -1,5 +1,5 @@
 #define MyAppName "batonAI"
-#define MyAppVersion "0.3.0"
+#define MyAppVersion "0.3.1"
 #define MyAppPublisher "batonAI"
 #define MyAppExeName "batonAI-control.exe"
 
@@ -40,7 +40,7 @@ Name: "{commonstartup}\batonAI gateway"; Filename: "{app}\gateway\batonAI-gatewa
 Name: "{autodesktop}\batonAI control"; Filename: "{app}\control\{#MyAppExeName}"; WorkingDir: "{app}\control"; Tasks: desktopicon
 
 [Run]
-Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command ""New-NetFirewallRule -DisplayName 'batonAI gateway' -Direction Inbound -Program '{app}\gateway\batonAI-gateway.exe' -Action Allow -Profile Private -ErrorAction SilentlyContinue"""; Flags: runhidden; StatusMsg: "Permitiendo el gateway en la red privada..."
+Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -Command ""New-NetFirewallRule -DisplayName 'batonAI gateway' -Direction Inbound -Program '{app}\gateway\batonAI-gateway.exe' -Action Allow -Profile Any -ErrorAction SilentlyContinue"""; Flags: runhidden; StatusMsg: "Permitiendo el gateway en la red local..."
 Filename: "{app}\control\{#MyAppExeName}"; Description: "Abrir batonAI control"; Flags: nowait postinstall skipifsilent
 
 [UninstallRun]

@@ -11,7 +11,7 @@ reales de las IAs instaladas: **OpenCode**, **Codex** y **Claude Code**.
 ## Descargar e instalar
 
 1. Entra en **[Releases](https://github.com/Enzuchi064/batonAI/releases/latest)**.
-2. Descarga `batonAI-control-setup-0.3.0.exe`.
+2. Descarga `batonAI-control-setup-0.3.1.exe`.
 3. Ejecútalo. Se instala en `Program Files` y pide administrador una vez para
    permitir el gateway en la red privada.
 4. Abre **batonAI control** desde el menú Inicio.
@@ -45,9 +45,8 @@ Authenticator**, sin copiar URL ni token.
 La app guarda la conexión y ya muestra el mismo gateway, los mismos agentes y
 el mismo dispositivo. No hay que escribir tokens.
 
-El instalador crea la regla de firewall para `batonAI-gateway.exe` en redes
-privadas; la red debe estar configurada como **Privada** en Windows. No expongas
-el puerto a Internet.
+El instalador crea la regla de firewall para `batonAI-gateway.exe` en la red
+local. Úsalo solo en una red de confianza y no expongas el puerto a Internet.
 
 ## Qué incluye
 
@@ -125,7 +124,7 @@ cd ..
 & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "packaging\batonAI.iss"
 ```
 
-El resultado queda en `release\batonAI-control-setup-0.3.0.exe`.
+El resultado queda en `release\batonAI-control-setup-0.3.1.exe`.
 
 ## Datos y privacidad
 

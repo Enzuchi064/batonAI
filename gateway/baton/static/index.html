@@ -137,13 +137,33 @@
                   <h2>Emparejar baton</h2>
                   <span id="pairing-state" class="pairing-state">esperando</span>
                 </div>
-                <div id="pairing-qr" class="pairing-qr"></div>
-                <p class="pairing-id"><b id="pairing-device">BATON-XXXXXXXX</b></p>
-                <p id="pairing-hint">Escanea el QR con Google Authenticator y empareja desde la app.</p>
-                <div id="pairing-confirm" class="pairing-confirm" hidden>
-                  <p>¿Emparejar con <b id="pairing-pc">PC</b>?</p>
-                  <p class="pairing-sas">SAS <b id="pairing-sas">0000</b></p>
-                  <p><kbd>A</kbd> aceptar · <kbd>B</kbd> cancelar</p>
+                <div class="pairing-body">
+                  <div class="pairing-visual">
+                    <div id="pairing-qr" class="pairing-qr"></div>
+                    <p class="pairing-id"><b id="pairing-device">BATON-XXXXXXXX</b></p>
+                  </div>
+                  <div class="pairing-details">
+                    <p id="pairing-hint">Escanea el QR con Google Authenticator y escribe aquí el código.</p>
+                    <div id="pairing-form" class="pairing-form">
+                      <input
+                        id="pairing-code"
+                        class="pairing-code"
+                        type="text"
+                        inputmode="numeric"
+                        autocomplete="one-time-code"
+                        maxlength="6"
+                        placeholder="000000"
+                        aria-label="Código de Google Authenticator"
+                      >
+                      <button id="pairing-submit" class="btn primary" type="button">Vincular este panel</button>
+                    </div>
+                    <p id="pairing-error" class="pairing-error" hidden></p>
+                    <div id="pairing-confirm" class="pairing-confirm" hidden>
+                      <p>¿Emparejar con <b id="pairing-pc">PC</b>?</p>
+                      <p class="pairing-sas">SAS <b id="pairing-sas">0000</b></p>
+                      <p><kbd>A</kbd> aceptar · <kbd>B</kbd> cancelar</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

@@ -11,7 +11,7 @@ reales de las IAs instaladas: **OpenCode**, **Codex** y **Claude Code**.
 ## Descargar e instalar
 
 1. Entra en **[Releases](https://github.com/Enzuchi064/batonAI/releases/latest)**.
-2. Descarga `batonAI-control-setup-0.3.1.exe`.
+2. Descarga `batonAI-control-setup-0.3.2.exe`.
 3. Ejecútalo. Se instala en `Program Files` y pide administrador una vez para
    permitir el gateway en la red privada.
 4. Abre **batonAI control** desde el menú Inicio.
@@ -29,21 +29,35 @@ botón **Abrir panel**.
 > El instalador no está firmado digitalmente. Windows puede mostrar SmartScreen:
 > pulsa **Más información → Ejecutar de todas formas**.
 
-## Control desde otro PC
+## Ver las IAs del otro PC
 
-El PC del dispositivo y el PC del panel de control se vinculan con **Google
-Authenticator**, sin copiar URL ni token.
+El gateway debe ejecutarse en el PC que **tiene** las IAs. El PC que debe
+**mostrarlas** es el que se vincula con Google Authenticator. No copies URL ni
+token: el panel se autentica con el código de 6 dígitos.
 
-1. En el PC del dispositivo, abre el panel y deja visible el QR de
-   emparejamiento.
-2. Escanea el QR con **Google Authenticator**.
-3. En el otro PC, abre **batonAI control → Ajustes → Conexión**.
-4. Pulsa **Buscar dispositivo**. La app descubre el PC del dispositivo en la
-   red local.
-5. Escribe el código de 6 dígitos de Google Authenticator y pulsa **Vincular**.
+### Opción A: app de escritorio
 
-La app guarda la conexión y ya muestra el mismo gateway, los mismos agentes y
-el mismo dispositivo. No hay que escribir tokens.
+1. En el PC que tiene las IAs, deja **batonAI control** abierto (arranca el
+   gateway) y el QR visible.
+2. En el PC que debe mostrar las IAs, abre **batonAI control → Ajustes →
+   Conexión**.
+3. Pulsa **Buscar dispositivo** y elige el PC que tiene las IAs.
+4. Escribe el código de Google Authenticator y pulsa **Vincular**.
+
+La app ya muestra los agentes del PC de origen. **Abrir panel** abre su panel
+480×320.
+
+### Opción B: panel remoto, sin app
+
+1. En el PC que tiene las IAs, deja el gateway/panel abierto.
+2. En el navegador del PC que debe mostrar las IAs, abre
+   `http://IP_DEL_PC_DE_ORIGEN:8770/`.
+3. Escanea el QR con **Google Authenticator**.
+4. Escribe el código en el panel y pulsa **Vincular este panel**.
+
+El panel queda vinculado y muestra las IAs del PC de origen. Si el PC de origen
+no aparece al buscar, comprueba que los dos estén en la misma red y que el
+firewall permita `batonAI-gateway.exe`.
 
 El instalador crea la regla de firewall para `batonAI-gateway.exe` en la red
 local. Úsalo solo en una red de confianza y no expongas el puerto a Internet.
@@ -57,8 +71,9 @@ local. Úsalo solo en una red de confianza y no expongas el puerto a Internet.
 - **Ojos por ventana:** eliges qué límites aparecen en el dispositivo.
 - **Modo Restante / Gastado:** el dispositivo puede mostrar lo que queda o lo
   consumido.
-- **Control desde otro PC:** URL + token de control para que la app de otro PC
-  use el gateway y el dispositivo del PC principal.
+- **Control desde otro PC:** Google Authenticator y descubrimiento LAN para
+  mostrar en un PC las IAs que están en otro. El panel 480×320 también se
+  vincula solo con el código.
 - **Panel 480×320:** cabecera, rejilla de agentes y columna lateral dividida
   entre límites y estados de agentes.
 - **Radar de peligro:** nivel 1/4–4/4, motivos y confirmación mantenida en el
@@ -124,7 +139,7 @@ cd ..
 & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "packaging\batonAI.iss"
 ```
 
-El resultado queda en `release\batonAI-control-setup-0.3.1.exe`.
+El resultado queda en `release\batonAI-control-setup-0.3.2.exe`.
 
 ## Datos y privacidad
 

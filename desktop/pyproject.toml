@@ -1,6 +1,6 @@
 [project]
 name = "baton-desktop"
-version = "0.3.1"
+version = "0.3.2"
 description = "Centro de control de escritorio de batonAI."
 requires-python = ">=3.11"
 dependencies = [

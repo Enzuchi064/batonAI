@@ -111,18 +111,22 @@ def _require_loopback(request: Request) -> None:
 
 
 def _require_control(request: Request) -> None:
-    """Loopback siempre; LAN solo con el token de control."""
+    """Loopback siempre; LAN con el token de control o de un dispositivo."""
     host = request.client.host if request.client else ""
     if host in LOCAL_HOSTS:
         return
     services = getattr(request.app.state, "services", None)
-    token = getattr(services, "remote_token", "") if services else ""
+    if services is None:
+        raise HTTPException(status_code=403, detail="control_token_required")
     header = request.headers.get("authorization", "")
-    if (
-        token
-        and header.startswith("Bearer ")
-        and secrets.compare_digest(header[7:], token)
-    ):
+    if not header.startswith("Bearer "):
+        raise HTTPException(status_code=403, detail="control_token_required")
+    presented = header[7:]
+    token = getattr(services, "remote_token", "")
+    if token and secrets.compare_digest(presented, token):
+        return
+    pairing = getattr(services, "pairing", None)
+    if pairing is not None and pairing.verify(presented):
         return
     raise HTTPException(status_code=403, detail="control_token_required")
 
@@ -594,9 +598,23 @@ def create_app(
             raise HTTPException(status_code=404, detail="dev_mode_disabled")
         return services.virtual_device
 
-    @app.get("/api/dev/virtual", dependencies=[Depends(_require_control)])
-    async def virtual_info() -> dict[str, Any]:
-        return _virtual().info(include_code=True)
+    @app.get("/api/dev/virtual")
+    async def virtual_info(request: Request) -> dict[str, Any]:
+        # El panel remoto necesita el QR para vincularse sin token. El código
+        # actual solo se muestra en loopback; el TOTP ya viaja en el QR.
+        host = request.client.host if request.client else ""
+        return _virtual().info(include_code=host in LOCAL_HOSTS)
+
+    @app.post("/api/dev/virtual/self-pair")
+    async def virtual_self_pair(body: ControlPairRequest) -> dict[str, Any]:
+        device = _virtual()
+        try:
+            result = device.self_pair(body.code)
+        except VirtualPairingError as exc:
+            status = 429 if exc.code in {"rate_limited", "replay"} else 401
+            raise HTTPException(status_code=status, detail=exc.code) from exc
+        await services.hub.disconnect(device.device_id, 4401, "replaced")
+        return result
 
     @app.post("/api/dev/virtual/pair", dependencies=[Depends(_require_control)])
     async def virtual_pair(body: VirtualPairRequest) -> dict[str, Any]:

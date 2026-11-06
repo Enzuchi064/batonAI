@@ -109,18 +109,24 @@ muestra en Ajustes con su estado, pero no ensucia la columna de límites. La
 sección de límites por agente del detalle ya no existe: la fuente de verdad son
 los planes reales de cada IA, no presupuestos manuales.
 
-## Control desde otro PC
+## Ver las IAs del otro PC
 
-En **Ajustes → Conexión** la app puede vincularse con Google Authenticator:
+En **Ajustes → Conexión** la app puede vincularse con Google Authenticator.
+Importante: el PC que debe **mostrar** las IAs es el que busca y se vincula; el
+otro PC es el que **tiene** las IAs y ejecuta el gateway.
 
-1. En el dispositivo, escanea el QR con Google Authenticator.
-2. En el otro PC, pulsa **Buscar dispositivo**. La app descubre el gateway en
-   la red local.
-3. Escribe el código de 6 dígitos y pulsa **Vincular**.
+1. En el PC que tiene las IAs, deja la app abierta y el QR visible.
+2. En el PC que debe mostrar las IAs, pulsa **Buscar dispositivo**. La app
+   descubre el gateway en la red local.
+3. Elige el PC de origen, escribe el código de 6 dígitos y pulsa **Vincular**.
 
 No hay que copiar URL ni token. La app guarda la conexión en
 `%LOCALAPPDATA%\batonAI\control.json`; **Usar este PC** vuelve al gateway local.
 La conexión manual con URL/token queda disponible en **Avanzado**.
+
+El panel 480×320 también se vincula solo: abre en el PC que debe mostrar las
+IAs `http://IP_DEL_PC_DE_ORIGEN:8770/`, escanea el QR y escribe el código en el
+panel.
 
 Cuando un agente pide permiso, la hoja de aprobación muestra un **radar de
 peligro** con nivel `1/4`–`4/4`, color y motivos en lenguaje normal. Para riesgo

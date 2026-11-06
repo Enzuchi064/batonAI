@@ -247,6 +247,11 @@ function panelDeviceId() {
   return id;
 }
 
+function isLoopbackPanel() {
+  const host = location.hostname;
+  return host === "127.0.0.1" || host === "::1" || host === "localhost";
+}
+
 async function fetchVirtual() {
   try {
     const response = await fetch("/api/dev/virtual", { cache: "no-store" });
@@ -283,12 +288,11 @@ async function deviceBoot() {
   sessionStorage.setItem(DEVICE_KEY, state.device_id);
   $("device-short").textContent = state.short || "—";
 
-  if (!state.paired) {
-    showVirtualPairing(state);
-    return;
-  }
-
-  const token = await fetchPanelToken();
+  // Panel local: token de desarrollo sin interacción. Panel remoto: token
+  // guardado tras vincular con Google Authenticator. Si no hay ninguno, se
+  // muestra el QR y el campo del código.
+  let token = isLoopbackPanel() ? await fetchPanelToken() : null;
+  if (!token) token = sessionStorage.getItem(TOKEN_KEY);
   if (token) {
     app.token = token;
     sessionStorage.setItem(TOKEN_KEY, token);
@@ -297,7 +301,6 @@ async function deviceBoot() {
     return;
   }
 
-  // Emparejado en el gateway pero sin token en este panel: hay que repetir.
   showVirtualPairing(state);
 }
 
@@ -324,16 +327,27 @@ function showVirtualPairing(state) {
   pairing.hidden = false;
 
   $("pairing-state").textContent = state.needs_confirm ? "confirmar" : "esperando";
-  $("pairing-qr").innerHTML = state.qr_svg || "";
+  const qr = $("pairing-qr");
+  if (qr.dataset.qr !== state.qr_svg) {
+    qr.innerHTML = state.qr_svg || "";
+    qr.dataset.qr = state.qr_svg || "";
+  }
   $("pairing-device").textContent = state.short
     ? `BATON-${state.short}`
     : state.device_id;
   $("pairing-confirm").hidden = !state.needs_confirm;
+  const linkedTo =
+    state.paired_to && state.paired_to !== "Panel web"
+      ? state.paired_to
+      : "";
   $("pairing-hint").textContent = state.needs_confirm
     ? state.paired_to
       ? `Confirma en el dispositivo para reemplazar ${state.paired_to}.`
       : "Confirma en el dispositivo para emparejar."
-    : "Escanea el QR con Google Authenticator y empareja desde la app.";
+    : linkedTo
+      ? `Escanea el QR y escribe el código para abrir ${linkedTo}.`
+      : "Escanea el QR con Google Authenticator y escribe aquí el código.";
+  $("pairing-form").hidden = Boolean(state.needs_confirm);
 
   if (state.needs_confirm) {
     $("pairing-pc").textContent = state.pending_pc || "PC";
@@ -360,7 +374,7 @@ async function pollVirtual() {
   app.virtual = state;
 
   if (state.paired) {
-    const token = await fetchPanelToken();
+    const token = isLoopbackPanel() ? await fetchPanelToken() : null;
     if (token) {
       stopVirtualPoll();
       app.token = token;
@@ -376,7 +390,71 @@ async function pollVirtual() {
 
 function hideVirtualPairing() {
   $("pairing").hidden = true;
+  $("pairing-error").hidden = true;
+  $("pairing-error").textContent = "";
   stopVirtualPoll();
+}
+
+const PAIR_ERRORS = {
+  bad_code: "Código incorrecto. Prueba con el siguiente.",
+  rate_limited: "Demasiados intentos. Espera un minuto.",
+  replay: "Ese código ya se usó. Espera al siguiente.",
+  not_paired: "El panel todavía no está vinculado.",
+};
+
+function showPairingError(text) {
+  const node = $("pairing-error");
+  node.textContent = text;
+  node.hidden = !text;
+}
+
+async function selfPair() {
+  const input = $("pairing-code");
+  const code = String(input.value || "").replace(/\D/g, "").slice(0, 6);
+  if (code.length !== 6) {
+    showPairingError("Escribe los 6 dígitos de Google Authenticator.");
+    return;
+  }
+  const button = $("pairing-submit");
+  button.disabled = true;
+  showPairingError("");
+  try {
+    const response = await fetch("/api/dev/virtual/self-pair", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ code }),
+    });
+    if (!response.ok) {
+      let detail = "pair_failed";
+      try {
+        detail = String((await response.json()).detail || detail);
+      } catch { /* respuesta sin JSON */ }
+      showPairingError(
+        PAIR_ERRORS[detail] || "No se pudo vincular este panel."
+      );
+      return;
+    }
+    const data = await response.json();
+    if (!data.token) {
+      showPairingError("El gateway no devolvió el token del panel.");
+      return;
+    }
+    app.token = data.token;
+    sessionStorage.setItem(TOKEN_KEY, data.token);
+    input.value = "";
+    hideVirtualPairing();
+    connect();
+  } catch {
+    showPairingError("No se pudo contactar con el gateway.");
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function controlHeaders(extra = {}) {
+  const headers = { ...extra };
+  if (app.token) headers.Authorization = `Bearer ${app.token}`;
+  return headers;
 }
 
 async function confirmOnDevice() {
@@ -385,7 +463,7 @@ async function confirmOnDevice() {
   try {
     const response = await fetch("/api/dev/virtual/confirm", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: controlHeaders({ "content-type": "application/json" }),
       body: JSON.stringify({ pair_id: pairId }),
     });
     if (!response.ok) {
@@ -400,7 +478,10 @@ async function confirmOnDevice() {
 
 async function cancelOnDevice() {
   try {
-    await fetch("/api/dev/virtual/cancel", { method: "POST" });
+    await fetch("/api/dev/virtual/cancel", {
+      method: "POST",
+      headers: controlHeaders(),
+    });
   } catch { /* se reintenta en el siguiente sondeo */ }
   await pollVirtual();
 }
@@ -420,11 +501,9 @@ function initRest() {
         : 0;
     app.restOverride = true;
   } else {
-    loadRestConfig();
     setInterval(loadRestConfig, 30000);
   }
 
-  loadLimits();
   setInterval(loadLimits, 60000);
   updateHeaderClock();
   setInterval(updateHeaderClock, 30000);
@@ -443,7 +522,10 @@ function initRest() {
 async function loadRestConfig() {
   if (app.restOverride) return;
   try {
-    const response = await fetch("/api/config/rest", { cache: "no-store" });
+    const response = await fetch("/api/config/rest", {
+      cache: "no-store",
+      headers: controlHeaders(),
+    });
     if (!response.ok) return;
     const data = await response.json();
     if (typeof data.rest_after_s === "number") {
@@ -454,7 +536,10 @@ async function loadRestConfig() {
 
 async function loadLimits() {
   try {
-    const response = await fetch("/api/limits", { cache: "no-store" });
+    const response = await fetch("/api/limits", {
+      cache: "no-store",
+      headers: controlHeaders(),
+    });
     if (!response.ok) return;
     const data = await response.json();
     app.limits = {
@@ -924,6 +1009,8 @@ function handle(message) {
       app.pinned = message.config?.pinned_agents || [];
       setLink("conectado", "on");
       setDevEnabled(true);
+      loadRestConfig();
+      loadLimits();
       break;
 
     case "state":
@@ -1875,7 +1962,9 @@ async function loadAudit() {
   const body = $("audit-body");
   body.replaceChildren(el("p", "audit-empty", "Cargando…"));
   try {
-    const response = await fetch("/api/audit?limit=40");
+    const response = await fetch("/api/audit?limit=40", {
+      headers: controlHeaders(),
+    });
     if (!response.ok) throw new Error(String(response.status));
     const data = await response.json();
     body.replaceChildren();
@@ -1908,7 +1997,7 @@ async function devAction(path, body) {
   try {
     const response = await fetch(path, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: controlHeaders({ "content-type": "application/json" }),
       body: JSON.stringify(body || {}),
     });
     if (!response.ok) {
@@ -2012,6 +2101,17 @@ $("force-high").addEventListener("click", () =>
 $("audit-toggle").addEventListener("click", toggleAudit);
 $("audit-close").addEventListener("click", toggleAudit);
 $("rest-now").addEventListener("click", toggleRest);
+
+$("pairing-submit").addEventListener("click", selfPair);
+$("pairing-code").addEventListener("input", (event) => {
+  event.target.value = event.target.value.replace(/\D/g, "").slice(0, 6);
+});
+$("pairing-code").addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    selfPair();
+  }
+});
 
 /* -- botones físicos -------------------------------------------------- */
 

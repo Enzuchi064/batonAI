@@ -58,6 +58,7 @@ class VirtualDevice:
     failures: int = 0
     locked_until: float = 0.0
     last_step: int | None = None
+    last_control_step: int | None = None
     pending: _Pending | None = None
     opened_at: float = field(default_factory=time.time)
 
@@ -84,6 +85,7 @@ class VirtualDevice:
         self.failures = 0
         self.locked_until = 0.0
         self.last_step = None
+        self.last_control_step = None
         self.pending = None
         self.opened_at = time.time()
 
@@ -164,7 +166,7 @@ class VirtualDevice:
         digest = hashlib.sha256(f"{self.device_id}:{step}".encode("utf-8")).digest()
         return str(int.from_bytes(digest[:4], "big") % 10_000).zfill(4)
 
-    def _check_code(self, code: str) -> int:
+    def _check_code(self, code: str, *, control: bool = False) -> int:
         now = time.time()
         if now < self.locked_until:
             raise VirtualPairingError(
@@ -184,21 +186,50 @@ class VirtualDevice:
             )
             raise VirtualPairingError("bad_code", "código incorrecto")
 
-        if self.last_step is not None and step <= self.last_step:
+        previous = self.last_control_step if control else self.last_step
+        if previous is not None and step <= previous:
             raise VirtualPairingError("replay", "ese código ya se ha usado")
         return step
 
     def verify_control_code(self, code: str) -> int:
         """Valida un código TOTP para vincular una app de control remota."""
-        step = self._check_code(code.strip())
+        step = self._check_code(code.strip(), control=True)
         self.attempts = 0
-        self.last_step = step
+        self.last_control_step = step
         self.audit.add_event(
             "control_paired",
             device_id=self.device_id,
             payload={"virtual": True},
         )
         return step
+
+    def self_pair(self, code: str) -> dict[str, Any]:
+        """Vincula este panel al gateway con el código de Google Authenticator.
+
+        El panel demuestra que tiene el secreto TOTP y recibe su propio token
+        de dispositivo. No hay confirmación en el hardware ni token que copiar:
+        el panel remoto se autentica solo.
+        """
+
+        step = self._check_code(code.strip())
+        issued = self.pairing.issue_for(self.device_id, "Panel web")
+        self.token = issued["token"]
+        self.paired_to = "Panel web"
+        self.paired_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        self.last_step = step
+        self.attempts = 0
+        self.pending = None
+        self._save()
+        self.audit.add_event(
+            "panel_paired",
+            device_id=self.device_id,
+            payload={"virtual": True, "token": issued["token"][:6]},
+        )
+        return {
+            "status": "paired",
+            "device_id": self.device_id,
+            "token": issued["token"],
+        }
 
     def pair(self, code: str, pc_name: str) -> dict[str, Any]:
         """Valida el código.

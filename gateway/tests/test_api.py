@@ -240,6 +240,68 @@ def test_control_pair_with_google_code(app):
         assert replay.json()["detail"] == "replay"
 
 
+def test_control_and_panel_pairing_use_separate_replay_state(app):
+    from baton import totp
+
+    device = app.state.services.virtual_device
+    assert device is not None
+    code = totp.totp(device.secret)
+
+    with TestClient(app, client=("10.0.0.7", 1234)) as remote:
+        control = remote.post("/api/control/pair", json={"code": code})
+        assert control.status_code == 200
+
+        # Vincular la app no debe consumir el código del panel.
+        panel = remote.post("/api/dev/virtual/self-pair", json={"code": code})
+        assert panel.status_code == 200
+        assert panel.json()["token"]
+
+
+def test_virtual_info_is_readable_from_lan_without_code(app):
+    device = app.state.services.virtual_device
+    assert device is not None
+
+    with TestClient(app, client=("10.0.0.7", 1234)) as remote:
+        body = remote.get("/api/dev/virtual").json()
+        assert body["device_id"] == device.device_id
+        assert body["qr_svg"]
+        assert body["code"] is None
+
+    with TestClient(app, client=("127.0.0.1", 1234)) as local:
+        body = local.get("/api/dev/virtual").json()
+        assert body["code"]
+
+
+def test_panel_self_pair_returns_device_token(app):
+    from baton import totp
+
+    device = app.state.services.virtual_device
+    assert device is not None
+    code = totp.totp(device.secret)
+
+    with TestClient(app, client=("10.0.0.7", 1234)) as remote:
+        assert remote.get("/api/limits").status_code == 403
+
+        pair = remote.post("/api/dev/virtual/self-pair", json={"code": code})
+        assert pair.status_code == 200
+        body = pair.json()
+        assert body["token"]
+        assert body["device_id"] == device.device_id
+
+        headers = {"Authorization": f"Bearer {body['token']}"}
+        assert remote.get("/api/limits", headers=headers).status_code == 200
+        assert remote.get("/api/config/rest", headers=headers).status_code == 200
+
+        with remote.websocket_connect("/ws/control") as ws:
+            ws.send_json(hello(body["token"], device.device_id))
+            welcome = recv_until(ws, "welcome")
+            assert welcome["device_id"] == device.device_id
+
+        replay = remote.post("/api/dev/virtual/self-pair", json={"code": code})
+        assert replay.status_code == 429
+        assert replay.json()["detail"] == "replay"
+
+
 def test_remote_control_requires_token(app):
     token = app.state.services.remote_token
 

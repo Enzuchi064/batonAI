@@ -157,17 +157,23 @@ adaptador no admite la acción. El supervisor registra `agent_interrupted` y
 - El ejecutable instalado escucha en `0.0.0.0:8770` para permitir el control
   desde otro PC de la red privada.
 - Las peticiones desde loopback no necesitan token.
-- Las peticiones desde LAN requieren `Authorization: Bearer <token>`.
-- El token se genera la primera vez y se guarda en `settings.remote_token` de
-  SQLite.
+- Las peticiones desde LAN requieren `Authorization: Bearer <token>`; vale el
+  token de control o el token de un dispositivo emparejado.
+- El token de control se genera la primera vez y se guarda en
+  `settings.remote_token` de SQLite.
 - `POST /api/control/pair` valida el código TOTP de Google Authenticator y
   devuelve el token de control. Tiene límite de intentos.
+- `POST /api/dev/virtual/self-pair` valida el mismo código y devuelve un token
+  de dispositivo para el panel. Así el panel remoto se vincula solo, sin copiar
+  URL ni token.
+- `GET /api/dev/virtual` se puede leer desde la LAN para pintar el QR; el código
+  actual solo se incluye en loopback.
 - El gateway responde a un broadcast UDP en el puerto `8766` para que la app
   descubra el dispositivo en la LAN.
 - `GET /api/config/remote` (solo loopback) devuelve token, URL principal e
   interfaces disponibles.
-- El instalador crea la regla de firewall para `batonAI-gateway.exe` en el
-  perfil Privado.
+- El instalador crea la regla de firewall para `batonAI-gateway.exe` en la red
+  local.
 
 ### Límites reales de las IAs
 
@@ -209,9 +215,9 @@ adaptador no admite la acción. El supervisor registra `agent_interrupted` y
 ### Dispositivo virtual TOTP
 
 `GET /api/dev/virtual` devuelve un dispositivo simulado con QR `otpauth://`
-(SVG), `device_id`, estado y, solo en modo desarrollo, el código actual. El QR
-se pinta en el panel 480×320 (`/`), no en la app. Sirve para probar el flujo de
-emparejamiento sin ESP32:
+(SVG), `device_id` y estado. Se puede leer desde la LAN para que el panel remoto
+pinte el QR; el código actual solo se incluye en loopback. Sirve para probar el
+flujo de emparejamiento sin ESP32:
 
 1. Abre el panel (`/`): muestra el QR.
 2. Escanéalo con Google Authenticator.
@@ -220,8 +226,13 @@ emparejamiento sin ESP32:
 5. El panel se conecta con el token y pasa al dashboard. Los reemplazos no
    piden A.
 
-Endpoints: `POST /api/dev/virtual/pair`, `/confirm`, `/cancel`, `/unpair` y
-`/reset` (todos solo loopback y con `BATON_DEV_MODE=1`). El estado se guarda en
+Para un panel remoto (las IAs están en otro PC) el flujo es distinto: abre en
+este PC `http://IP_DEL_OTRO_PC:8770/`, escanea el QR y escribe el código en el
+propio panel. `POST /api/dev/virtual/self-pair` devuelve el token de dispositivo
+sin confirmación ni token que copiar.
+
+Endpoints: `POST /api/dev/virtual/pair`, `/self-pair`, `/confirm`, `/cancel`,
+`/unpair` y `/reset` (con `BATON_DEV_MODE=1`). El estado se guarda en
 `var/virtual_device.json` para conservar el secreto entre reinicios.
 
 ## Qué probar
@@ -277,7 +288,7 @@ Atajos del panel: `A` permitir, `B` denegar, `←`/`→` cambiar de agente,
 .\.venv\Scripts\python.exe -m baton serve [--host H] [--port P] [--fake]
 .\.venv\Scripts\python.exe -m baton pair      # imprime un código y sale
 .\.venv\Scripts\baton.exe serve               # mismo CLI, instalado
-.\.venv\Scripts\python.exe -m pytest -q       # 136 pruebas
+.\.venv\Scripts\python.exe -m pytest -q       # 139 pruebas
 ```
 
 ## Estructura

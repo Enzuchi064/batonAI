@@ -126,7 +126,7 @@ batonAI/
     │   │   ├── opencode.py           permisos, prompts e interrupción de OpenCode
     │   │   └── supervisor.py         orquestación
     │   └── static/                   panel web (HTML/CSS/JS sin build)
-    ├── tests/                        136 pruebas
+    ├── tests/                        139 pruebas
     └── var/                          base de datos (no versionada)
 ```
 
@@ -647,7 +647,8 @@ Endpoints:
 | `POST /api/pair` | código | Emite token (simulador) |
 | `GET /api/dev/bootstrap` | loopback | Token de conveniencia del panel |
 | `GET /api/dev/pairing` | loopback | Código vigente (simulador) |
-| `GET /api/dev/virtual` | loopback + dev | Dispositivo virtual: QR y estado |
+| `GET /api/dev/virtual` | LAN + dev | Dispositivo virtual: QR y estado (código solo loopback) |
+| `POST /api/dev/virtual/self-pair` | LAN + dev | Vincula el panel remoto con Google Authenticator |
 | `POST /api/dev/virtual/pair` | loopback + dev | Verifica el código TOTP |
 | `POST /api/dev/virtual/confirm` | loopback + dev | Simula la confirmación A |
 | `POST /api/dev/virtual/unpair` | loopback + dev | Desempareja el dispositivo virtual |
@@ -685,7 +686,7 @@ panel; el gateway solo emite el token cuando el emparejamiento termina.
 
 ## 12. Pruebas
 
-136 pruebas (pytest) sobre las piezas donde un fallo es caro:
+139 pruebas (pytest) sobre las piezas donde un fallo es caro:
 
 - **Estado:** transiciones válidas e inválidas, `since`, limpieza de aprobación,
   orden del dashboard, `seq`, límite del log.

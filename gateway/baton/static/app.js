@@ -230,7 +230,7 @@ function setLink(text, state) {
 async function boot() {
   initRest();
   app.deviceId = sessionStorage.getItem(DEVICE_KEY) || panelDeviceId();
-  app.token = sessionStorage.getItem(TOKEN_KEY);
+  app.token = loadStoredToken();
   await deviceBoot();
   restoreRest();
 }
@@ -245,6 +245,24 @@ function panelDeviceId() {
     sessionStorage.setItem(DEVICE_KEY, id);
   }
   return id;
+}
+
+function loadStoredToken() {
+  try {
+    return localStorage.getItem(TOKEN_KEY) || sessionStorage.getItem(TOKEN_KEY);
+  } catch {
+    return sessionStorage.getItem(TOKEN_KEY);
+  }
+}
+
+function storeToken(token) {
+  try { localStorage.setItem(TOKEN_KEY, token); } catch { /* sin localStorage */ }
+  sessionStorage.setItem(TOKEN_KEY, token);
+}
+
+function clearStoredToken() {
+  try { localStorage.removeItem(TOKEN_KEY); } catch { /* sin localStorage */ }
+  sessionStorage.removeItem(TOKEN_KEY);
 }
 
 function isLoopbackPanel() {
@@ -292,10 +310,10 @@ async function deviceBoot() {
   // guardado tras vincular con Google Authenticator. Si no hay ninguno, se
   // muestra el QR y el campo del código.
   let token = isLoopbackPanel() ? await fetchPanelToken() : null;
-  if (!token) token = sessionStorage.getItem(TOKEN_KEY);
+  if (!token) token = loadStoredToken();
   if (token) {
     app.token = token;
-    sessionStorage.setItem(TOKEN_KEY, token);
+    storeToken(token);
     hideVirtualPairing();
     connect();
     return;
@@ -313,7 +331,7 @@ async function bootstrap() {
     const data = await response.json();
     app.token = data.token;
     app.deviceId = data.device_id || app.deviceId;
-    sessionStorage.setItem(TOKEN_KEY, data.token);
+    storeToken(data.token);
     sessionStorage.setItem(DEVICE_KEY, app.deviceId);
     if (data.state) renderState(data.state);
     connect();
@@ -378,7 +396,7 @@ async function pollVirtual() {
     if (token) {
       stopVirtualPoll();
       app.token = token;
-      sessionStorage.setItem(TOKEN_KEY, token);
+      storeToken(token);
       hideVirtualPairing();
       connect();
       return;
@@ -440,7 +458,7 @@ async function selfPair() {
       return;
     }
     app.token = data.token;
-    sessionStorage.setItem(TOKEN_KEY, data.token);
+    storeToken(data.token);
     input.value = "";
     hideVirtualPairing();
     connect();
@@ -974,7 +992,7 @@ function connect() {
     stopPtt(true);
     if (event.code === 4401) {
       app.token = null;
-      sessionStorage.removeItem(TOKEN_KEY);
+      clearStoredToken();
       deviceBoot();
       return;
     }
